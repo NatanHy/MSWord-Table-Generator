@@ -27,8 +27,8 @@ if __name__ == "__main__":
     xls = pd.ExcelFile(XLS_PATH)
 
     geospheres = parse_geospheres(xls)
-    for g in geospheres:
-        print(g)
+
+    info = geospheres[0].get_info()
 
 
 
