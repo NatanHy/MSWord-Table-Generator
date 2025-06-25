@@ -3,7 +3,7 @@ from typing import List, Tuple, Dict
 from docx import Document
 from docx.table import Table
 from table_config import *
-from table_config import configure_document
+from table_config import configure_document, configure_table
 
 
 
@@ -17,9 +17,64 @@ def set_text(table : Table, pos : Tuple[int, int], text : str):
 
 def add_info(table : Table, geosphere : GeoSphere, variable_descriptions : Dict[str, str]):
     info = geosphere.get_info()
-    for var in info.variables:
-        table.add_row()
-        table.cell(-1, 0).text = variable_descriptions[var] 
+
+    variables = info.indicies(0)
+    num_periods = info.num_time_periods()
+
+    time_periods = info.indicies(2)
+
+    for var in variables:
+        desc = variable_descriptions[var]
+        for i in range(num_periods):
+            table.add_row()
+            time_period = time_periods[i + 1]
+
+            table.cell(-1, 0).text = desc    
+            table.cell(-1, 1).text = \
+                info.get_value(var, "Variable influence on process", "Influence present?", "Yes/No") + \
+                "\n" + \
+                info.get_value(var, "Variable influence on process", "Influence present?", "Description")
+            table.cell(-1, 2).text = time_period
+            table.cell(-1, 3).text = \
+                info.get_value(var, "Variable influence on process", "Influence present?", "Yes/No") + \
+                "\n" + \
+                info.get_value(var, "Variable influence on process", time_period, "Rationale")
+            
+            table.cell(-1, 4).text = \
+                info.get_value(var, "Process influence on variable", "Influence present?", "Yes/No") + \
+                "\n" + \
+                info.get_value(var, "Process influence on variable", "Influence present?", "Description")
+            table.cell(-1, 5).text = time_period
+            table.cell(-1, 6).text = \
+                info.get_value(var, "Process influence on variable", "Influence present?", "Yes/No") + \
+                "\n" + \
+                info.get_value(var, "Process influence on variable", time_period, "Rationale")
+
+def merge_table_rows(table : Table):
+    for col in table.columns:
+        prev_cell = None
+        start_cell_indx = 0
+
+        # print("RESET")
+
+        for i, cell in enumerate(col.cells):
+            # print(start_cell_indx, i, prev_cell_text, cell.text)
+            if prev_cell is not None and cell.text == prev_cell.text:
+                continue
+            else:
+                if prev_cell is None:
+                    start_cell_indx = i + 1
+                    prev_cell = cell
+                    continue
+
+                if i != start_cell_indx:
+                    text_before_merge = prev_cell.text
+                    col.cells[i - 1].merge(col.cells[start_cell_indx])
+                    prev_cell.text = text_before_merge
+
+                    start_cell_indx = i
+                
+                prev_cell = cell
 
 def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str]):
     word_document = Document()
@@ -41,6 +96,7 @@ def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str]
 
     add_info(table, geosphere, variable_descriptions)
 
-    table.style = "Table Grid"
+    merge_table_rows(table)
+    configure_table(table)
 
     word_document.save("files/word/test.docx")

@@ -2,6 +2,7 @@ import pandas as pd
 from dataclasses import dataclass
 from openpyxl.utils import column_index_from_string
 from typing import Tuple, List, Any
+from math import nan
 
 def excel_to_indx(col : str, row : int) -> Tuple[int, int]:
     # -1 from index since python uses 0-indexing whereas excel uses 1-indexing
@@ -55,7 +56,15 @@ class GeoSphereInfo:
             case _:
                 return []
                 
-    def get_value(self, l0, l1, l2, l3):
+    def get_value(self, l0, l1, l2, l3) -> Any:
+        """
+        Get the value of a cell in the excel file using 4-component indexing.
+
+        ## Examples
+        ```
+        get_value("VarGe01", "Variable influence on process", "Temperate", "Rationale")
+        ```
+        """
         try:
             l0_row_offset = var_to_offset(l0)
         except Exception as e:
@@ -88,7 +97,11 @@ class GeoSphereInfo:
             case _:
                 raise ValueError(f"Invalid level 2 index {l3}, valid values are {self.indicies(3)}")
         
-        return self.df.iloc[l0_row_offset + l1_row_offset, l2_col_offset + l3_col_offset]
+        val = self.df.iloc[l0_row_offset + l1_row_offset, l2_col_offset + l3_col_offset]
+        return str(val)
+    
+    def num_time_periods(self):
+        return len(self.indicies(2)) - 1
 
 @dataclass
 class GeoSphere:
