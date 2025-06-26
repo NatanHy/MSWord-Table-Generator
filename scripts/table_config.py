@@ -1,5 +1,5 @@
 import docx.document
-from docx.table import Table
+from fixed_table import FixedTable
 from docx.shared import Cm, Pt
 
 # ===============================================
@@ -22,14 +22,16 @@ def configure_document(doc : docx.document.Document):
         section.left_margin = Cm(LEFT_MARGIN)
         section.right_margin = Cm(RIGHT_MARGIN)
 
-def configure_table(table : Table):
-    for row in table.rows:
-        for cell in row.cells:
+def configure_table(table : FixedTable):
+    for row in range(table.rows):
+        for col in range(table.cols):
+            cell = table.cell(row, col)
+
             paragraphs = cell.paragraphs
             for paragraph in paragraphs:
                 for run in paragraph.runs:
                     run.font.name = TABLE_FONT
                     font = run.font
-                    font.size= Pt(TABLE_FONT_SIZE)
+                    font.size = Pt(TABLE_FONT_SIZE)
 
-    table.style = TABLE_STYLE
+    table._table.style = TABLE_STYLE

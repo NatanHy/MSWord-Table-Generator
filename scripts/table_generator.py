@@ -1,21 +1,9 @@
 from geosphere import GeoSphere, GeoSphereInfo
-from typing import List, Tuple, Dict
+from typing import Tuple, Dict
+from fixed_table import FixedTable
 from docx import Document
-from docx.table import Table, _Cell
 from table_config import *
 from table_config import configure_document, configure_table
-
-class FixedTable:
-    def __init__(self, document :docx.document.Document, rows, cols):
-        self.document = document
-        self._table = self.document.add_table(rows, cols)
-        self.rows = rows
-        self.cols = cols
-        self.cells = self._table._cells
-
-    def cell(self, row, col) -> _Cell:
-        indx = row * self.cols + col
-        return self.cells[indx]
 
 def span_text_over_cells(table : FixedTable, pos1 : Tuple[int, int], pos2 : Tuple[int, int], text : str):
     cell = table.cell(*pos1).merge(table.cell(*pos2))
@@ -112,10 +100,10 @@ def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str]
     span_text_over_cells(table, (0, 4), (0, 6), "Process influence on variables")  
 
     set_text(table, (1, 1), "Influence present? (Yes/No Description)")
-    set_text(table, (1, 4), "Influence present? (Yes/No Description)")
     set_text(table, (1, 2), "Time period/Climate domain")
-    set_text(table, (1, 5), "Time period/Climate domain")
     set_text(table, (1, 3), "Handling of influence \n (How/If not — Why)")
+    set_text(table, (1, 4), "Influence present? (Yes/No Description)")
+    set_text(table, (1, 5), "Time period/Climate domain")
     set_text(table, (1, 6), "Handling of influence \n (How/If not — Why)")
 
     add_info(table, info, variable_descriptions)
@@ -124,7 +112,10 @@ def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str]
     cutoffs = [2 + i * num_time_periods for i in range(info.num_variables())]
     merge_table_rows(table, force_cutoffs=cutoffs)
 
-    configure_table(table._table)
+    configure_table(table)
     make_bold(table, (0, 0), (2, 7))
 
-    word_document.save(output_target)
+    try:
+        word_document.save(output_target)
+    except PermissionError:
+        print(f"Unable to save word file {output_target}, perhaps you forgot to close the document?")

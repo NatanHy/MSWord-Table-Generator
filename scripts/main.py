@@ -57,4 +57,4 @@ if __name__ == "__main__":
         generate_table(geospheres[0], variable_descriptions, f"files/word/table_{geosphere.id}.docx")
         end = time.time()
         print(f"    Generated table for {geosphere.id} : {i+1} / {len(geospheres)} | {end - start:.2f}s")
-    print("Done.")
+    print("Operation completed.")
