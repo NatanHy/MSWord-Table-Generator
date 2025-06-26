@@ -21,7 +21,6 @@ def make_bold(table : Table, pos1 : Tuple[int, int], pos2 : Tuple[int, int]):
             cell = table.cell(i, j)
             paragraphs = cell.paragraphs
             for paragraph in paragraphs:
-                print(paragraph.text)
                 for run in paragraph.runs:
                     run.font.bold = True
             
@@ -62,25 +61,26 @@ def merge_table_rows(table : Table):
         prev_cell = None
         start_cell_indx = 0
 
-        # print("RESET")
-
         for i, cell in enumerate(col.cells):
-            # print(start_cell_indx, i, prev_cell_text, cell.text)
             if prev_cell is not None and cell.text == prev_cell.text:
+                if i == len(col.cells) - 1:
+                    if i != start_cell_indx:
+                        text_before_merge = prev_cell.text
+                        col.cells[i].merge(col.cells[start_cell_indx])
+                        prev_cell.text = text_before_merge
                 continue
             else:
                 if prev_cell is None:
-                    start_cell_indx = i + 1
+                    start_cell_indx = i
                     prev_cell = cell
                     continue
 
-                if i != start_cell_indx:
+                if i != start_cell_indx + 1:
                     text_before_merge = prev_cell.text
                     col.cells[i - 1].merge(col.cells[start_cell_indx])
                     prev_cell.text = text_before_merge
 
-                    start_cell_indx = i
-                
+                start_cell_indx = i
                 prev_cell = cell
 
 def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str]):
