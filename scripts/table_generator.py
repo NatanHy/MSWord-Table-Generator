@@ -15,6 +15,17 @@ def set_text(table : Table, pos : Tuple[int, int], text : str):
     cell = table.cell(*pos)
     cell.text = text
 
+def make_bold(table : Table, pos1 : Tuple[int, int], pos2 : Tuple[int, int]):
+    for i in range(pos1[0], pos2[0]):
+        for j in range(pos1[1], pos2[1]):
+            cell = table.cell(i, j)
+            paragraphs = cell.paragraphs
+            for paragraph in paragraphs:
+                print(paragraph.text)
+                for run in paragraph.runs:
+                    run.font.bold = True
+            
+
 def add_info(table : Table, geosphere : GeoSphere, variable_descriptions : Dict[str, str]):
     info = geosphere.get_info()
 
@@ -36,8 +47,6 @@ def add_info(table : Table, geosphere : GeoSphere, variable_descriptions : Dict[
                 info.get_value(var, "Variable influence on process", "Influence present?", "Description")
             table.cell(-1, 2).text = time_period
             table.cell(-1, 3).text = \
-                info.get_value(var, "Variable influence on process", "Influence present?", "Yes/No") + \
-                "\n" + \
                 info.get_value(var, "Variable influence on process", time_period, "Rationale")
             
             table.cell(-1, 4).text = \
@@ -46,8 +55,6 @@ def add_info(table : Table, geosphere : GeoSphere, variable_descriptions : Dict[
                 info.get_value(var, "Process influence on variable", "Influence present?", "Description")
             table.cell(-1, 5).text = time_period
             table.cell(-1, 6).text = \
-                info.get_value(var, "Process influence on variable", "Influence present?", "Yes/No") + \
-                "\n" + \
                 info.get_value(var, "Process influence on variable", time_period, "Rationale")
 
 def merge_table_rows(table : Table):
@@ -98,5 +105,6 @@ def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str]
 
     merge_table_rows(table)
     configure_table(table)
+    make_bold(table, (0, 0), (2, 7))
 
     word_document.save("files/word/test.docx")
