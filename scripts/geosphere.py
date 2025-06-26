@@ -2,7 +2,6 @@ import pandas as pd
 from dataclasses import dataclass
 from openpyxl.utils import column_index_from_string
 from typing import Tuple, List, Any
-from math import nan
 
 def excel_to_indx(col : str, row : int) -> Tuple[int, int]:
     # -1 from index since python uses 0-indexing whereas excel uses 1-indexing
@@ -35,7 +34,6 @@ class GeoSphereInfo:
     def variables(self) -> List[str]:
         # Extract column with just variable names as a flat list
         return get_cell_range("C", 19, 1, 13, self.df).iloc[:, 0].tolist()
-
 
     def indicies(self, level : int) -> List[str]:
         """
@@ -98,10 +96,21 @@ class GeoSphereInfo:
                 raise ValueError(f"Invalid level 2 index {l3}, valid values are {self.indicies(3)}")
         
         val = self.df.iloc[l0_row_offset + l1_row_offset, l2_col_offset + l3_col_offset]
-        return str(val)
+
+        # Ugly nan-check, but avoids having to convert val (type Scalar)
+        match str(val):
+            case "nan":
+                return "—" # Note: em-dash
+            case "0":
+                return ""
+            case res:
+                return res
     
-    def num_time_periods(self):
+    def num_time_periods(self) -> int:
         return len(self.indicies(2)) - 1
+
+    def num_variables(self) -> int:
+        return len(self.indicies(0))
 
 @dataclass
 class GeoSphere:

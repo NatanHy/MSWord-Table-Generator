@@ -2,6 +2,7 @@ import pandas as pd
 from geosphere import GeoSphere
 from typing import List, Dict
 from table_generator import generate_table
+import time
 
 XLS_PATH = "files/excel/geosphere.xlsx"
 
@@ -41,9 +42,19 @@ def parse_variables(xls : pd.ExcelFile) -> Dict[str, str]:
     return variables
 
 if __name__ == "__main__":
+    print("Parsing Excel file...")
     xls = pd.ExcelFile(XLS_PATH)
 
     geospheres = parse_geospheres(xls)
     variable_descriptions = parse_variables(xls)
 
-    generate_table(geospheres[0], variable_descriptions)
+    print("Done.")
+    print("Generating Word tables...")
+
+    geospheres = geospheres[:1]
+    for i, geosphere in enumerate(geospheres):
+        start = time.time()
+        generate_table(geospheres[0], variable_descriptions, f"files/word/table_{geosphere.id}.docx")
+        end = time.time()
+        print(f"    Generated table for {geosphere.id} : {i+1} / {len(geospheres)} | {end - start:.2f}s")
+    print("Done.")
