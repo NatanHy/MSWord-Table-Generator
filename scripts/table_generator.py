@@ -83,7 +83,7 @@ def merge_table_rows(table : FixedTable, force_cutoffs=[]):
                 start_cell_row = row
                 prev_cell = cell
 
-def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str], output_target : str):
+def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str], output_filename : str):
     word_document = Document()
     configure_document(word_document)
 
@@ -115,7 +115,4 @@ def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str]
     configure_table(table)
     make_bold(table, (0, 0), (2, 7))
 
-    try:
-        word_document.save(output_target)
-    except PermissionError:
-        print(f"Unable to save word file {output_target}, perhaps you forgot to close the document?")
+    word_document.save(output_filename)

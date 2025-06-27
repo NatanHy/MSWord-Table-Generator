@@ -3,6 +3,7 @@ from geosphere import GeoSphere
 from typing import List, Dict
 from table_generator import generate_table
 import time
+import sys
 
 XLS_PATH = "files/excel/geosphere.xlsx"
 
@@ -43,7 +44,13 @@ def parse_variables(xls : pd.ExcelFile) -> Dict[str, str]:
 
 if __name__ == "__main__":
     print("Parsing Excel file...")
-    xls = pd.ExcelFile(XLS_PATH)
+
+    xls_path, output_dir = sys.argv[1:3]
+
+    try:
+        xls = pd.ExcelFile(xls_path)
+    except FileNotFoundError as e:
+        raise e
 
     geospheres = parse_geospheres(xls)
     variable_descriptions = parse_variables(xls)
@@ -54,7 +61,7 @@ if __name__ == "__main__":
     geospheres = geospheres[:1]
     for i, geosphere in enumerate(geospheres):
         start = time.time()
-        generate_table(geospheres[0], variable_descriptions, f"files/word/table_{geosphere.id}.docx")
+        generate_table(geospheres[0], variable_descriptions, f"{output_dir}/table_{geosphere.id}.docx")
         end = time.time()
         print(f"    Generated table for {geosphere.id} : {i+1} / {len(geospheres)} | {end - start:.2f}s")
     print("Operation completed.")
