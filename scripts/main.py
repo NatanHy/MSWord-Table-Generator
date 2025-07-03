@@ -2,9 +2,9 @@ import pandas as pd
 from geosphere import GeoSphere
 from typing import List, Dict
 from table_generator import generate_table
+from docx.document import Document
 import time
 import sys
-from os import getcwd
 
 XLS_PATH = "files/excel/geosphere.xlsx"
 
@@ -43,22 +43,8 @@ def parse_variables(xls : pd.ExcelFile) -> Dict[str, str]:
 
     return variables
 
-if __name__ == "__main__":
+def generate_tables(xls_path) -> Dict[str, Document]:
     print("Parsing Excel file...")
-
-    try:
-        xls_path = sys.argv[1]
-    except ValueError:
-        raise ValueError("No file provided")
-
-    if not xls_path.endswith(".xlxs") or xls_path.endswith(".xls"):
-        raise ValueError("Unexpected file type. Provided file must be an excel file.")
-    
-    try:
-        output_dir = sys.argv[2]
-    except:
-        print(f"No output directory specified, defaulting to {getcwd()}/files")
-        output_dir = "files"
 
     try:
         xls = pd.ExcelFile(xls_path)
@@ -71,15 +57,42 @@ if __name__ == "__main__":
     print("Done.")
     print("Generating Word tables...")
 
-    geospheres = geospheres[:1]
+    tables = {}
+
     successful = 0
     for i, geosphere in enumerate(geospheres):
         try:
             start = time.time()
-            generate_table(geospheres[0], variable_descriptions, f"{output_dir}/table_{geosphere.id}.docx")
+
+            geosphere_name = f"table_{geosphere.id}.docx"
+            table = generate_table(geospheres[0], variable_descriptions)
+
+            tables[geosphere_name] = table
+
             end = time.time()
             successful += 1
             print(f"    Generated table for {geosphere.id} : {successful} / {len(geospheres)} | {end - start:.2f}s")
         except Exception as e:
             print(f"    Failed to generate table for {geosphere.id} : {e}")
-    print(f"Operation completed. Generated {successful} files in {output_dir}/")
+    print(f"Operation completed. Generated {successful} table(s).")
+
+    return tables
+
+if __name__ == "__main__":
+    try:
+        xls_path = sys.argv[1]
+    except ValueError:
+        raise ValueError("No file provided")
+
+    if not xls_path.endswith(".xlxs") or xls_path.endswith(".xls"):
+        raise ValueError("Unexpected file type. Provided file must be an excel file.")
+    
+    try:
+        output_dir = sys.argv[2]
+    except:
+        raise ValueError("Output directory not specified.")
+    
+    tables = generate_tables(xls_path)
+
+    for path, doc in tables.items():
+        doc.save(f"{output_dir}/{path}")

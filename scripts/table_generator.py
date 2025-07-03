@@ -83,7 +83,7 @@ def merge_table_rows(table : FixedTable, force_cutoffs=[]):
                 start_cell_row = row
                 prev_cell = cell
 
-def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str], output_filename : str):
+def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str]) -> docx.document.Document:
     word_document = Document()
     configure_document(word_document)
 
@@ -115,4 +115,4 @@ def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str]
     configure_table(table)
     make_bold(table, (0, 0), (2, 7))
 
-    word_document.save(output_filename)
+    return word_document
