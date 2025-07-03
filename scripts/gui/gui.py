@@ -118,8 +118,8 @@ files_chosen_frame.pack(fill="both", expand=True)
 file_list_frame = ctk.CTkFrame(files_chosen_frame, width=round(RES_X * 0.8))
 file_list_frame.pack(fill="both", expand=True, padx=5, pady=(10, 0))
 
-file_list_scroll_frame = ctk.CTkScrollableFrame(file_list_frame, fg_color="transparent", height=50)
-file_list_scroll_frame._scrollbar.configure(height=130)
+file_list_scroll_frame = ctk.CTkScrollableFrame(file_list_frame, fg_color="transparent", height=130)
+file_list_scroll_frame._scrollbar.configure(height=130) # Internal minimum is 200 by default, change to 130
 file_list_scroll_frame.pack(fill="both", expand=True, pady=5)
 
 # Add files button
