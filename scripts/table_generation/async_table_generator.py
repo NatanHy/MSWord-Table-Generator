@@ -7,6 +7,16 @@ import time, queue, sys, threading
 from utils.redirect_manager import redirect_stdout_to
 
 def parse_geospheres(xls : pd.ExcelFile) -> List[GeoSphere]:
+    """
+    Parse Ge info from the PSAR SKF FEP list sheet of the excel file. 
+
+    ### Parameters
+    xls : `pd.ExcelFile` specifying Geosphere data in the PSAR SKF FEP list sheet
+
+    ### Returns
+    List of `GeoSphere` objects. 
+    """
+
     # Get main sheet
     fep_list = xls.parse("PSAR SFK FEP list", skiprows=5)
     df = fep_list[["SKB FEP ID", "FEP Name", "Description"]]
@@ -25,6 +35,16 @@ def parse_geospheres(xls : pd.ExcelFile) -> List[GeoSphere]:
     return geospheres
 
 def parse_variables(xls : pd.ExcelFile) -> Dict[str, str]:
+    """
+    Parse VarGe from the PSAR SKF FEP list sheet of the excel file. 
+
+    ### Parameters
+    xls : `pd.ExcelFile` specifying Variable data in the PSAR SKF FEP list sheet
+
+    ### Returns
+    Dictionary from VarGe to Geosphere names objects. 
+    """
+
     # Get main sheet
     fep_list = xls.parse("PSAR SFK FEP list", skiprows=5)
     df = fep_list[["SKB FEP ID", "FEP Name"]]
@@ -42,7 +62,15 @@ def parse_variables(xls : pd.ExcelFile) -> Dict[str, str]:
     return variables
 
 class AsyncTableGenerator:
+    """
+    Class for generating tables asynchronously. Generated tables are placed in a queue provided during initiation. 
+    """
     def __init__(self, queue : queue.Queue, stdout_redirect=None):
+        """
+        ### Parameters
+        queue : `Queue` where generated tables will be placed.\n
+        stdout_redirect : optional redirect for stdout
+        """
         self.thread = None
         self.queue = queue
 
@@ -57,7 +85,11 @@ class AsyncTableGenerator:
         return self.thread is not None and self.thread.is_alive()
 
     def generate_tables(self, xls_paths: Iterable[str]):
+        """
+        Start a thread for generating tables. 
+        """
         def task():
+            # Using context manager to redirect stdout
             with redirect_stdout_to(self.stdout_redirect):
                 for xls_path in xls_paths:
                     self._process_file(xls_path)
@@ -66,6 +98,7 @@ class AsyncTableGenerator:
         self.thread.start()
 
     def _process_file(self, xls_path: str):
+        print(f"Parsing {xls_path}")
         try:
             xls = pd.ExcelFile(xls_path)
         except FileNotFoundError as e:
@@ -77,10 +110,12 @@ class AsyncTableGenerator:
         print("Done.")
         print("Generating Word tables...")
 
+        # Keep track of successfully/unsuccessfully generated tables
         successful = 0
         unsuccessful = 0
 
         for geosphere in geospheres:
+            # Abort generation if stop flag is set
             if self.stop_event.is_set():
                 print("Operation terminated.")
                 return
@@ -94,6 +129,7 @@ class AsyncTableGenerator:
         print(f"Operation completed. Generated {successful} table(s). Success {successful} | Fail {unsuccessful}")
 
     def _generate_table(self, geosphere, variable_descriptions, xls_path) -> bool:
+        # Try generating word document and add it to the queue
         try:
             start = time.time()
             document = generate_document(geosphere, variable_descriptions)

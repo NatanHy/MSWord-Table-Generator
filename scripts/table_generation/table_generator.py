@@ -12,15 +12,6 @@ def span_text_over_cells(table : FixedTable, pos1 : Tuple[int, int], pos2 : Tupl
 def set_text(table : FixedTable, pos : Tuple[int, int], text : str):
     cell = table.cell(*pos)
     cell.text = text
-
-def make_bold(table : FixedTable, pos1 : Tuple[int, int], pos2 : Tuple[int, int]):
-    for i in range(pos1[0], pos2[0]):
-        for j in range(pos1[1], pos2[1]):
-            cell = table.cell(i, j)
-            paragraphs = cell.paragraphs
-            for paragraph in paragraphs:
-                for run in paragraph.runs:
-                    run.font.bold = True
             
 
 def add_info(table : FixedTable, info : GeoSphereInfo, variable_descriptions : Dict[str, str]):
@@ -84,13 +75,17 @@ def merge_table_rows(table : FixedTable, force_cutoffs=[]):
                 prev_cell = cell
 
 def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, str]) -> docx.document.Document:
+    """
+    Generates a word document with a table specifying information for the given geosphere. 
+    """
     word_document = Document()
-    configure_document(word_document)
+    configure_document(word_document) # User specified document configuration
 
     info = geosphere.get_info()
     num_variables = info.num_variables()
     num_periods = info.num_time_periods()
 
+    # number of rows = 2 for header + a block for each variable where the number of rows depends on num_preiods
     num_rows = 2 + num_variables * num_periods
     table = FixedTable(word_document, num_rows, 7)
 
@@ -106,13 +101,13 @@ def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, s
     set_text(table, (1, 5), "Time period/Climate domain")
     set_text(table, (1, 6), "Handling of influence \n (How/If not — Why)")
 
+    # Generating the bulk of the table
     add_info(table, info, variable_descriptions)
 
-    num_time_periods = info.num_time_periods()
-    cutoffs = [2 + i * num_time_periods for i in range(info.num_variables())]
+    # Merge rows with identical entries, force cutoff at each new variable
+    cutoffs = [2 + i * num_periods for i in range(info.num_variables())]
     merge_table_rows(table, force_cutoffs=cutoffs)
 
-    configure_table(table)
-    make_bold(table, (0, 0), (2, 7))
+    configure_table(table) # User specified table configuration
 
     return word_document
