@@ -83,7 +83,7 @@ def merge_table_rows(table : FixedTable, force_cutoffs=[]):
                 start_cell_row = row
                 prev_cell = cell
 
-def generate_table(geosphere : GeoSphere, variable_descriptions : Dict[str, str]) -> docx.document.Document:
+def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, str]) -> docx.document.Document:
     word_document = Document()
     configure_document(word_document)
 

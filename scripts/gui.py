@@ -2,11 +2,12 @@ from tkinter import TOP, BOTTOM, LEFT, RIGHT
 from tkinterdnd2 import TkinterDnD, DND_ALL
 import customtkinter as ctk
 from file_item import FileItem
+from table import Table
 from text_box_redirect import TextboxRedirector
+from async_table_generator import AsyncTableGenerator
 from PIL import Image
-from main import generate_tables
-from pathlib import Path
-import os, sys, threading, platform
+from typing import List
+import os, sys, platform, queue
 
 ASPECT_RATIO = 9 / 16
 RES_X = 720
@@ -16,9 +17,18 @@ RESOLUTION = f"{RES_X}x{RES_Y}"
 # Save stdout to restore later
 original_stdout = sys.stdout
 
+# Store chosen files
 selected_file_paths = set()
 file_items = []
-per_file_tables = {}
+recieved_tables : List[Table] = []
+
+# Store frames to hide/show one at a time
+frames = []
+current_frame = 0
+
+# Object for generating tables asynchronously 
+table_queue = queue.Queue()
+async_table_generator = AsyncTableGenerator(table_queue)
 
 class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
     def __init__(self, *args, **kwargs):
@@ -30,6 +40,8 @@ def display_ui_element(elm, **kwargs):
 
 def hide_ui_element(elm):
     elm.pack_forget()
+    elm.place_forget()
+    elm.grid_forget()
 
 def remove_file_item(file_item : FileItem):
     selected_file_paths.remove(file_item.file_path)
@@ -47,67 +59,88 @@ def drag_and_drop_files(event):
     cleaned_paths = [path.strip("{} ") for path in file_paths]
     add_files(cleaned_paths)
 
-    show_file_display()
+    next_frame(fill="both")
 
 def select_files():
     file_paths = ctk.filedialog.askopenfilenames()
     add_files(file_paths)
 
-    show_file_display()
+    next_frame(fill="both")
 
-# Called to display slected files once user has chosen one or more files
-def show_file_display():
-    hide_ui_element(dnd_frame)
-    display_ui_element(files_chosen_frame, fill="both")
+def next_frame(**kwargs):
+    global current_frame
 
-def show_generate_display():
-    hide_ui_element(files_chosen_frame)
-    display_ui_element(generating_frame, fill="both")
+    hide_ui_element(frames[current_frame])
+    current_frame += 1
 
-def run_generate_tables_async():
-    threading.Thread(target=_gen_tables, daemon=True).start()
+    if current_frame >= len(frames):
+        return
 
-def _gen_tables():
-    global original_stdout
-    sys.stdout = TextboxRedirector(output_textbox)  # Redirect print to GUI
+    display_ui_element(frames[current_frame], **kwargs)
+    back_button.place(x=10, y=10)
 
-    try:
-        for path in selected_file_paths:
-            tables = generate_tables(path)
-            path_name = Path(path).stem
-            per_file_tables[path_name] = tables
-    except Exception as e:
-        print(f"❌ Error: {e}")
-    finally:
-        sys.stdout = original_stdout  # Restore normal stdout
-        save_button.configure(state="normal", fg_color=choose_file_button._fg_color, text_color="white") # Allow saving of files
+def prev_frame(**kwargs):
+    global current_frame
+
+    hide_ui_element(frames[current_frame])
+    current_frame -= 1
+
+    if current_frame < 0:
+        return
+
+    display_ui_element(frames[current_frame], **kwargs)
+
+def back():
+    match current_frame:
+        case 1:
+            hide_ui_element(back_button)
+            prev_frame(**FRAME_1_KW)
+        case 2:
+            prev_frame(**FRAME_2_KW)
+            async_table_generator.stop_event.set()
+        case _:
+            return # Back button should not do anything on first frame
 
 def gen_tables():
-    show_generate_display()
-    run_generate_tables_async()
+    global recieved_tables
+    
+    next_frame(fill="both")
+    recieved_tables = [] # Clear tables left from previous generate
+    async_table_generator.stop_event.clear() # Make sure the stop flag is set to false
+
+    # Generate tables asynchronously
+    try:
+        async_table_generator.generate_tables(selected_file_paths)
+    except Exception as e:
+        print(f"❌ Error: {e}")
+
+    poll_table_queue()
+
+
+def poll_table_queue():
+    try:
+        table = table_queue.get_nowait()
+        recieved_tables.append(table)
+    except queue.Empty:
+        # Table generation completed
+        if not async_table_generator.is_running():
+            # Allow saving of files
+            save_button.configure(state="normal", fg_color=choose_file_button._fg_color, text_color="white")
+
+        pass
+    root.after(100, poll_table_queue)  # Poll every 100ms
 
 def save_tables():
     # Ask user to choose a folder
     output_dir = ctk.filedialog.askdirectory(title="Select output directory")
     if not output_dir:
         return  # User cancelled
+    
+    # Make subfolders for each selected file only if multiple are selected
+    make_subfolders = len(selected_file_paths) > 1
 
-    items = per_file_tables.items()
-    for path, tables in items:
-        # Sanitize subdirectory name
-
-        if len(items) > 1:
-            subfolder_name = os.path.basename(path).replace(" ", "_")
-            full_subfolder_path = os.path.join(output_dir, subfolder_name)
-        else:
-            full_subfolder_path = output_dir
-
-        if not os.path.isdir(full_subfolder_path):
-            os.makedirs(full_subfolder_path)
-
-        for table_name, document in tables.items():
-            save_path = os.path.join(full_subfolder_path, table_name)
-            document.save(save_path)
+    for table in recieved_tables:
+        table.save(output_dir, make_subfolder=make_subfolders)
 
     # Show confirmation popup with "Open folder" option
     show_save_confirmation(output_dir)
@@ -162,6 +195,7 @@ if __name__ == "__main__":
     root.geometry(RESOLUTION)
     root.title("Table Generator")
 
+    # Header
     header_label = ctk.CTkLabel(
         root, 
         text="Table Generator",
@@ -175,6 +209,10 @@ if __name__ == "__main__":
     )
     sub_header_label.pack(side=TOP, pady=(0, 10))
 
+    #==================================================
+    # Containers (frames) for the different pages
+    #==================================================
+
     # Drag-and-drop frame
     dnd_frame = ctk.CTkFrame(
         root, 
@@ -183,13 +221,31 @@ if __name__ == "__main__":
         border_color="#444",
         border_width=1,
         )
-
-    dnd_frame.pack(side=TOP, padx=10, pady=10, expand=True, fill="both")
+    # Prevent the frame from resizing to fit its contents
+    dnd_frame.pack_propagate(False)
     dnd_frame.drop_target_register(DND_ALL)  # type: ignore
     dnd_frame.dnd_bind("<<Drop>>", drag_and_drop_files) # type: ignore
 
-    # Prevent the frame from resizing to fit its contents
-    dnd_frame.pack_propagate(False)
+    # Container for elements shown once files have been chosen
+    files_chosen_frame = ctk.CTkFrame(root, fg_color="transparent")
+    # Frame to display while generating tables
+    generating_frame = ctk.CTkFrame(root, fg_color="transparent")
+
+    frames = [dnd_frame, files_chosen_frame, generating_frame]
+
+    #==================================================
+    # Defining UI elements and inner containers
+    #==================================================
+    
+    # Back button
+    back_img = ctk.CTkImage(light_image=Image.open("resources/back_arrow_white.png"), size=(20, 20))
+    back_button = ctk.CTkButton(
+        root, 
+        image=back_img,
+        text="",
+        command=back,
+        width=30,
+    )
 
     # Button for browsing files
     choose_file_button = ctk.CTkButton(
@@ -200,29 +256,22 @@ if __name__ == "__main__":
         height=60,
         font=("Segoe UI", 20, "bold")
     )
-    choose_file_button.place(relx=0.5, rely=0.3, anchor="center")
 
     # Drag and drop text label
     dnd_img = ctk.CTkImage(dark_image=Image.open("resources/dnd_white.png"), light_image=Image.open("resources/dnd_black.png"), size=(20, 20))
-
     dnd_file_label = ctk.CTkLabel(
         dnd_frame, 
         image=dnd_img,
         compound="left",
         text=" or drag and drop files here"
         )
-    dnd_file_label.place(relx=0.5, rely=0.5, anchor="center")
-
-    # Container for elements shown once files have been chosen
-    files_chosen_frame = ctk.CTkFrame(root, fg_color="transparent")
-
+    
     # File list container
     file_list_frame = ctk.CTkFrame(files_chosen_frame, width=round(RES_X * 0.8))
-    file_list_frame.pack(fill="both", expand=True, padx=5, pady=(10, 0))
-
+    
+    # Scrollable frame for file list
     file_list_scroll_frame = ctk.CTkScrollableFrame(file_list_frame, fg_color="transparent", height=130)
     file_list_scroll_frame._scrollbar.configure(height=130) # Internal minimum is 200 by default, change to 130
-    file_list_scroll_frame.pack(fill="both", expand=True, pady=5)
 
     # Add files button
     add_files_img = ctk.CTkImage(dark_image=Image.open("resources/add_files_white.png"), light_image=Image.open("resources/add_files_black.png"), size=(20, 20))
@@ -234,9 +283,8 @@ if __name__ == "__main__":
         text=" Add more files",
         command=select_files
     )
-    more_files_button.pack(side=LEFT, padx=5, pady=5)
 
-    # Generate button below, aligned right
+    # Button for generating the tables
     generate_button = ctk.CTkButton(
         files_chosen_frame,
         text="Generate tables",
@@ -245,10 +293,6 @@ if __name__ == "__main__":
         font=("Segoe UI", 20, "bold"),
         command=gen_tables
     )
-    generate_button.pack(side=TOP, anchor="e", padx=5, pady=10)
-
-    # Frame to display while generating tables
-    generating_frame = ctk.CTkFrame(root, fg_color="transparent")
 
     # Command-line style textbox for table generation output
     output_textbox = ctk.CTkTextbox(
@@ -256,8 +300,9 @@ if __name__ == "__main__":
         height=200,
         font=("Seoge UI Mono", 12)
         )
-    output_textbox.pack(fill="both", padx=10, pady=10)
-
+    
+    async_table_generator.stdout_redirect = TextboxRedirector(output_textbox)
+    
     # Button for saving tables
     save_button = ctk.CTkButton(
         generating_frame,
@@ -270,6 +315,26 @@ if __name__ == "__main__":
         text_color="gray80", 
         command=save_tables
     ) 
+
+    #==================================================
+    # Placing UI elements and inner containers
+    #==================================================
+
+    # Frame 1
+    FRAME_1_KW = {"side":TOP, "padx":10, "pady":10, "expand":True, "fill":"both"}
+    dnd_frame.pack(**FRAME_1_KW)
+    choose_file_button.place(relx=0.5, rely=0.3, anchor="center")
+    dnd_file_label.place(relx=0.5, rely=0.5, anchor="center")
+    
+    # Frame 2
+    FRAME_2_KW = {"fill":"both", "expand":True, "padx":10, "pady":10}
+    file_list_frame.pack(**FRAME_2_KW)
+    file_list_scroll_frame.pack(fill="both", expand=True, pady=5)
+    more_files_button.pack(side=LEFT, padx=5, pady=5)
+    generate_button.pack(side=TOP, anchor="e", padx=5, pady=10)
+
+    # Frame 3
+    output_textbox.pack(fill="both", padx=10, pady=10)
     save_button.pack(side=TOP, anchor="e", padx=10, pady=(5,10))
 
     root.mainloop()

@@ -1,7 +1,7 @@
 import pandas as pd
 from geosphere import GeoSphere
 from typing import List, Dict
-from table_generator import generate_table
+from table_generator import generate_document
 from docx.document import Document
 import time
 import sys
@@ -65,7 +65,7 @@ def generate_tables(xls_path) -> Dict[str, Document]:
             start = time.time()
 
             geosphere_name = f"table_{geosphere.id}.docx"
-            table = generate_table(geospheres[0], variable_descriptions)
+            table = generate_document(geospheres[0], variable_descriptions)
 
             tables[geosphere_name] = table
 
