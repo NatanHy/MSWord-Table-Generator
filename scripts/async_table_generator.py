@@ -72,7 +72,7 @@ class AsyncTableGenerator:
             self.stdout_redirect = sys.stdout
         else:
             self.stdout_redirect = stdout_redirect
-            
+
         self.stop_event = threading.Event()
 
     def is_running(self) -> bool:

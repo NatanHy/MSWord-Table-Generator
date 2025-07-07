@@ -19,6 +19,7 @@ class Table:
             os.makedirs(full_subfolder_path)
 
         save_path = os.path.join(full_subfolder_path, f"table_{self.geosphere_id}.docx")
+        print(f"Saved table in {save_path}")
         self.doc.save(save_path)
 
         
