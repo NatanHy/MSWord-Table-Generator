@@ -1,32 +1,10 @@
-import threading
 import pandas as pd
-from geosphere import GeoSphere
 from typing import Dict, Iterable, List
-from table_generator import generate_document
-from table import Table
-import time, queue, sys, io
-from contextlib import contextmanager
-
-@contextmanager
-def redirect_stdout_to(redirector):
-    """
-    Context manager for redirectring stdout. Redirects stdout within the context, and 
-    redirect it back to the previous state after. 
-    
-    ## Example
-
-    ```
-    with redirect_stdout_to(my_redirect_widget):
-        print("Printing to my widget :)")
-    ```
-    """
-    original = sys.stdout
-    sys.stdout = redirector
-    try:
-        yield
-    finally:
-        sys.stdout = original
-
+from table_generation.geosphere import GeoSphere
+from table_generation.table_generator import generate_document
+from table_generation.table import Table
+import time, queue, sys, threading
+from utils.redirect_manager import redirect_stdout_to
 
 def parse_geospheres(xls : pd.ExcelFile) -> List[GeoSphere]:
     # Get main sheet

@@ -1,5 +1,5 @@
 import docx.document
-from fixed_table import FixedTable
+from table_generation.fixed_table import FixedTable
 from docx.shared import Cm, Pt
 
 # ===============================================

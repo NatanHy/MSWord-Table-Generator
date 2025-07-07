@@ -1,9 +1,9 @@
-from geosphere import GeoSphere, GeoSphereInfo
+from table_generation.geosphere import GeoSphere, GeoSphereInfo
 from typing import Tuple, Dict
-from fixed_table import FixedTable
+from table_generation.fixed_table import FixedTable
 from docx import Document
-from table_config import *
-from table_config import configure_document, configure_table
+import docx.document
+from table_generation.table_config import configure_document, configure_table
 
 def span_text_over_cells(table : FixedTable, pos1 : Tuple[int, int], pos2 : Tuple[int, int], text : str):
     cell = table.cell(*pos1).merge(table.cell(*pos2))

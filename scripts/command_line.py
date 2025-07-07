@@ -1,7 +1,7 @@
 import sys
-from async_table_generator import AsyncTableGenerator
+from table_generation.async_table_generator import AsyncTableGenerator
 import queue
-from table import Table
+from table_generation.table import Table
 from time import sleep
 
 def poll_table_queue(output_dir):

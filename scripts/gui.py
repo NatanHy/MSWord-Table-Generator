@@ -1,10 +1,11 @@
 from tkinter import TOP, BOTTOM, LEFT, RIGHT
 from tkinterdnd2 import TkinterDnD, DND_ALL
 import customtkinter as ctk
-from file_item import FileItem
-from table import Table
-from text_box_redirect import TextboxRedirector
-from async_table_generator import AsyncTableGenerator
+from gui.file_item import FileItem
+from table_generation.table import Table
+from gui.text_box_redirect import TextboxRedirector
+from table_generation.async_table_generator import AsyncTableGenerator
+from utils.redirect_manager import redirect_stdout_to
 from PIL import Image
 from typing import List
 import os, sys, platform, queue
@@ -139,8 +140,9 @@ def save_tables():
     # Make subfolders for each selected file only if multiple are selected
     make_subfolders = len(selected_file_paths) > 1
 
-    for table in recieved_tables:
-        table.save(output_dir, make_subfolder=make_subfolders)
+    with redirect_stdout_to(output_redirector):
+        for table in recieved_tables:
+            table.save(output_dir, make_subfolder=make_subfolders)
 
     # Show confirmation popup with "Open folder" option
     show_save_confirmation(output_dir)
@@ -301,7 +303,8 @@ if __name__ == "__main__":
         font=("Seoge UI Mono", 12)
         )
     
-    async_table_generator.stdout_redirect = TextboxRedirector(output_textbox)
+    output_redirector = TextboxRedirector(output_textbox)
+    async_table_generator.stdout_redirect = output_redirector
     
     # Button for saving tables
     save_button = ctk.CTkButton(
