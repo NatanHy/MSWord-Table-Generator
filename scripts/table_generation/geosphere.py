@@ -22,6 +22,11 @@ def get_non_null_values_from_row(df, excel_row : int) -> pd.Series:
 
     return df.loc[row_indx].dropna()
 
+def make_first_row_headers(df) -> pd.DataFrame:
+    # Promote first row to header
+    df.columns = df.iloc[0]         # Set first row as header
+    return df[1:]                     # Drop the first row (now header)
+
 def var_to_offset(var : str) -> int:
     return int(var.removeprefix("VarGe")) - 1
 
@@ -32,8 +37,22 @@ class GeoSphereInfo:
 
     @property
     def variables(self) -> List[str]:
-        # Extract column with just variable names as a flat list
-        return get_cell_range("C", 19, 1, 13, self.df).iloc[:, 0].tolist()
+        return self.indicies(0)
+    
+    @property
+    def influences(self) -> List[str]:
+        return self.indicies(1)
+    
+    @property
+    def time_periods(self) -> List[str]:
+        return self.indicies(2)[1:]
+
+    def num_time_periods(self) -> int:
+        # -1 to not include "Influence present?" header as a time period
+        return len(self.time_periods) - 1
+
+    def num_variables(self) -> int:
+        return len(self.variables)
 
     def indicies(self, level : int) -> List[str]:
         """
@@ -41,7 +60,8 @@ class GeoSphereInfo:
         """
         match level:
             case 0:
-                return self.variables 
+                # Extract column with just variable names as a flat list
+                return get_cell_range("C", 19, 1, 13, self.df).iloc[:, 0].tolist()
             case 1:
                 return ["Variable influence on process", "Process influence on variable"]
             case 2:
@@ -54,49 +74,88 @@ class GeoSphereInfo:
             case _:
                 return []
                 
-    def get_value(self, l0, l1, l2, l3) -> Any:
+    def _get_var_df(self, n) -> pd.DataFrame:
+        # i, j is the index of the "top-left" item for the given variable
+        j, i = excel_to_indx("F", 56)
+        i += n
+
+        # Row offsets from "Variable influence on process" to "Process influence on variable"
+        piv_offset = 17
+
+        row_indices = [i - 2, i - 1, i, i + piv_offset]
+        col_range = set(range(j, j + 13))
+        col_exclude = set([j + 2, j + 5, j + 8, j + 11])
+
+        # Extract rows from the DataFrame
+        df = self.df.iloc[row_indices, list(col_range - col_exclude)]
+        return df
+
+
+    def get_values(self, l0=None, l1=None, l2=None, l3=None) -> Any:
         """
-        Get the value of a cell in the excel file using 4-component indexing.
+        Get a dataframe of values in the excel file using 4-component indexing. Leaving indeces unspecified gives all elements
+        for every possible value of the index. 
 
         ## Examples
         ```
         get_value("VarGe01", "Variable influence on process", "Temperate", "Rationale")
         ```
+        ```
+        get_value("VarGe01", "Process influence on variable")
+        ```
         """
-        try:
-            l0_row_offset = var_to_offset(l0)
-        except Exception as e:
-            raise ValueError(f"Invalid level 0 index {l0}, valid values are {self.indicies(0)}")
-        
-        match l1:
-            case "Variable influence on process":
-                # l1_row_offset = 18
-                l1_row_offset = 55
-            case "Process influence on variable":
-                # l1_row_offset = 35
-                l1_row_offset = 72
-            case _:
-                raise ValueError(f"Invalid level 1 index {l1}, valid values are {self.indicies(1)}")
-        
-        try:
-            row = self.df.loc[l1_row_offset - 2]
-            l2_col_offset = row[row == l2].index.to_list()[0]
-        except IndexError:
-            raise ValueError(f"Invalid level 2 index {l2}, valid values are {self.indicies(2)}")
 
-        if l3 not in self.indicies(3):
-            raise ValueError(f"Invalid level 2 index {l3}, valid values are {self.indicies(3)}")
+        df = self.df
 
-        match l3:
-            case "Yes/No" | "How":
-                l3_col_offset = 0
-            case "Description" | "Rationale":
-                l3_col_offset = 1
-            case _:
+        if l0 is not None:
+            try:
+                df = self._get_var_df(var_to_offset(l0))
+            except:
+                raise ValueError(f"Invalid level 0 index {l0}, valid values are {self.indicies(0)}")
+
+        if l1 is not None:
+            match l1:
+                case "Variable influence on process":
+                    df = df.iloc[[0, 1, 2]]
+                case "Process influence on variable":
+                    df = df.iloc[[0, 1, 3]]
+                case _:
+                    raise ValueError(f"Invalid level 1 index {l1}, valid values are {self.indicies(1)}")
+        
+        if l2 is not None:
+            try:
+                headers = df.iloc[0]
+                match_indices = [i for i, val in enumerate(headers) if val == l2]
+                
+                # For each match, get the index plus the next column (if it exists)
+                cols_to_keep_indices = []
+                for i in match_indices:
+                    cols_to_keep_indices.append(i)
+                    if i + 1 < len(headers):
+                        cols_to_keep_indices.append(i + 1)
+                # Get column names based on indices
+                cols_to_keep = df.columns[cols_to_keep_indices]
+
+                # Select columns (all rows)
+                df = df.iloc[1:, df.columns.get_indexer(cols_to_keep)]
+
+            except IndexError:
+                raise ValueError(f"Invalid level 2 index {l2}, valid values are {self.indicies(2)}")
+
+        if l3 is not None:
+            if l3 not in self.indicies(3):
+                raise ValueError(f"Invalid level 2 index {l3}, valid values are {self.indicies(3)}")
+
+            try:
+                df = make_first_row_headers(df)
+                df = df[l3]
+            except:
                 raise ValueError(f"Invalid level 2 index {l3}, valid values are {self.indicies(3)}")
         
-        val = self.df.iloc[l0_row_offset + l1_row_offset, l2_col_offset + l3_col_offset]
-
+        return df
+    
+    def get_value(self, l0, l1, l2, l3):
+        val = self.get_values(l0, l1, l2, l3)
         # Ugly nan-check, but avoids having to convert val (type Scalar)
         match str(val):
             case "nan":
@@ -105,12 +164,6 @@ class GeoSphereInfo:
                 return ""
             case res:
                 return res
-    
-    def num_time_periods(self) -> int:
-        return len(self.indicies(2)) - 1
-
-    def num_variables(self) -> int:
-        return len(self.indicies(0))
 
 @dataclass
 class GeoSphere:

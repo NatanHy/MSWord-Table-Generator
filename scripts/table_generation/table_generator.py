@@ -4,6 +4,7 @@ from table_generation.fixed_table import FixedTable
 from docx import Document
 import docx.document
 from table_generation.table_config import configure_document, configure_table
+from parser.parser import PARSER, TableExecutor
 
 def span_text_over_cells(table : FixedTable, pos1 : Tuple[int, int], pos2 : Tuple[int, int], text : str):
     cell = table.cell(*pos1).merge(table.cell(*pos2))
@@ -12,7 +13,6 @@ def span_text_over_cells(table : FixedTable, pos1 : Tuple[int, int], pos2 : Tupl
 def set_text(table : FixedTable, pos : Tuple[int, int], text : str):
     cell = table.cell(*pos)
     cell.text = text
-            
 
 def add_info(table : FixedTable, info : GeoSphereInfo, variable_descriptions : Dict[str, str]):
     variables = info.indicies(0)
@@ -89,20 +89,28 @@ def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, s
     num_rows = 2 + num_variables * num_periods
     table = FixedTable(word_document, num_rows, 7)
 
-    # Make header
-    span_text_over_cells(table, (0, 0), (1, 0), "Variables")
-    span_text_over_cells(table, (0, 1), (0, 3), "Variable influence on process")    
-    span_text_over_cells(table, (0, 4), (0, 6), "Process influence on variables")  
+    with open("scripts/table.cfg", "r") as f:
+        code = f.read()
 
-    set_text(table, (1, 1), "Influence present? (Yes/No Description)")
-    set_text(table, (1, 2), "Time period/Climate domain")
-    set_text(table, (1, 3), "Handling of influence \n (How/If not — Why)")
-    set_text(table, (1, 4), "Influence present? (Yes/No Description)")
-    set_text(table, (1, 5), "Time period/Climate domain")
-    set_text(table, (1, 6), "Handling of influence \n (How/If not — Why)")
+    tree = PARSER.parse(code)
+    executor = TableExecutor(info)
 
-    # Generating the bulk of the table
-    add_info(table, info, variable_descriptions)
+    executor.transform(tree)
+
+    # # Make header
+    # span_text_over_cells(table, (0, 0), (1, 0), "Variables")
+    # span_text_over_cells(table, (0, 1), (0, 3), "Variable influence on process")    
+    # span_text_over_cells(table, (0, 4), (0, 6), "Process influence on variables")  
+
+    # set_text(table, (1, 1), "Influence present? (Yes/No Description)")
+    # set_text(table, (1, 2), "Time period/Climate domain")
+    # set_text(table, (1, 3), "Handling of influence \n (How/If not — Why)")
+    # set_text(table, (1, 4), "Influence present? (Yes/No Description)")
+    # set_text(table, (1, 5), "Time period/Climate domain")
+    # set_text(table, (1, 6), "Handling of influence \n (How/If not — Why)")
+
+    # # Generating the bulk of the table
+    # add_info(table, info, variable_descriptions)
 
     # Merge rows with identical entries, force cutoff at each new variable
     cutoffs = [2 + i * num_periods for i in range(info.num_variables())]

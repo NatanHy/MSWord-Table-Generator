@@ -252,7 +252,7 @@ if __name__ == "__main__":
     # Button for browsing files
     choose_file_button = ctk.CTkButton(
         dnd_frame, 
-        text="Choose files",
+        text="Choose Excel files",
         command=select_files,
         width=250,
         height=60,
