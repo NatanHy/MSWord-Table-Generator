@@ -14,6 +14,9 @@ class TableState:
 
         self._arr[self._cur_i][self._cur_j] = elm
 
+    def reset_col(self):
+        self._cur_j = 0
+
     def next_row(self):
         self._cur_i += 1
 

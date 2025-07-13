@@ -13,9 +13,12 @@ statement: foreach_stmt
 
 foreach_stmt: loop_type "(" expression ")" "as" var_def "{" statement+ "}"
 
-loop_type: "foreachrow" | "foreachcol"
+loop_type: FOREACHROW | FOREACHCOL
 
-output_stmt: expression ("|" expression)* NEWLINE?
+FOREACHROW: "foreachrow"
+FOREACHCOL: "foreachcol"
+
+output_stmt: expression ("|" expression)*
 
 // -------------------
 // EXPRESSIONS
@@ -47,7 +50,6 @@ NEW_LINE : "!newline"
 %import common.CNAME
 %import common.ESCAPED_STRING
 %import common.WS
-%import common.NEWLINE
 %ignore WS
 """
 
@@ -58,6 +60,7 @@ class Parser():
 
     def parse(self, code : str):
         self.tree = self.parser.parse(code)
+        print(self.tree.pretty())
 
     def execute(self, info : GeoSphereInfo):
         executor = TableExecutor(info)
@@ -107,6 +110,7 @@ class TableExecutor(Transformer):
                     return self.info.variables
                 case "!newline":
                     self.table_state.next_row()
+                    self.table_state.reset_col()
         return exec
 
     def concatenation(self, items):
@@ -126,7 +130,7 @@ class TableExecutor(Transformer):
         def exec():
             # Since loop_type is a rule in the grammar, the left node is the loop type
             # loop_type = str(loop_type_tree.children[0])
-            loop_type = "foreachrow"
+            loop_type = self._resolve(loop_type_tree).value
 
             # Index target will already be resolved
             iterable = self._resolve(iterable_tree.children[0])
