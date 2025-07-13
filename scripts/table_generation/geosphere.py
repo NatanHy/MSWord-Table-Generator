@@ -77,13 +77,12 @@ class GeoSphereInfo:
     def _get_var_df(self, n) -> pd.DataFrame:
         # i, j is the index of the "top-left" item for the given variable
         j, i = excel_to_indx("F", 56)
-        i += n
 
         # Row offsets from "Variable influence on process" to "Process influence on variable"
         piv_offset = 17
 
-        row_indices = [i - 2, i - 1, i, i + piv_offset]
-        col_range = set(range(j, j + 13))
+        row_indices = [i - 2, i - 1, i + n, i + n + piv_offset]
+        col_range = set(range(j, j + 14))
         col_exclude = set([j + 2, j + 5, j + 8, j + 11])
 
         # Extract rows from the DataFrame
@@ -131,8 +130,9 @@ class GeoSphereInfo:
                 cols_to_keep_indices = []
                 for i in match_indices:
                     cols_to_keep_indices.append(i)
-                    if i + 1 < len(headers):
+                    if i + 1 <= len(headers):
                         cols_to_keep_indices.append(i + 1)
+
                 # Get column names based on indices
                 cols_to_keep = df.columns[cols_to_keep_indices]
 
@@ -140,17 +140,20 @@ class GeoSphereInfo:
                 df = df.iloc[1:, df.columns.get_indexer(cols_to_keep)]
 
             except IndexError:
-                raise ValueError(f"Invalid level 2 index {l2}, valid values are {self.indicies(2)}")
+                raise ValueError(f"\nInvalid level 2 index {l2}, valid values are {self.indicies(2)}")
 
         if l3 is not None:
             if l3 not in self.indicies(3):
-                raise ValueError(f"Invalid level 2 index {l3}, valid values are {self.indicies(3)}")
+                raise ValueError(f"Invalid level 3 index {l3}, valid values are {self.indicies(3)}")
 
             try:
                 df = make_first_row_headers(df)
+                # print(df)
+                # print(l0, l1, l2, l3)
+                # print()
                 df = df[l3]
             except:
-                raise ValueError(f"Invalid level 2 index {l3}, valid values are {self.indicies(3)}")
+                raise ValueError(f"Invalid level 3 index {l3}, valid values are {self.indicies(3)}")
         
         return df
     

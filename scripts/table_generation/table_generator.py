@@ -4,7 +4,7 @@ from table_generation.fixed_table import FixedTable
 from docx import Document
 import docx.document
 from table_generation.table_config import configure_document, configure_table
-from parser.parser import PARSER, TableExecutor
+from parser.parser import TableExecutor
 
 def span_text_over_cells(table : FixedTable, pos1 : Tuple[int, int], pos2 : Tuple[int, int], text : str):
     cell = table.cell(*pos1).merge(table.cell(*pos2))
@@ -92,10 +92,10 @@ def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, s
     with open("scripts/table.cfg", "r") as f:
         code = f.read()
 
-    tree = PARSER.parse(code)
-    executor = TableExecutor(info)
+    # tree = PARSER.parse(code)
+    # executor = TableExecutor(info)
 
-    executor.transform(tree)
+    # executor.transform(tree)
 
     # # Make header
     # span_text_over_cells(table, (0, 0), (1, 0), "Variables")
