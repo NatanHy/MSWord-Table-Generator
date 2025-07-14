@@ -1,6 +1,5 @@
 import pandas as pd
 from typing import Iterable
-from table_generation.geosphere import GeoSphere
 from table_generation.table_generator import generate_document
 from table_generation.table import Table
 import time, queue, sys, threading

@@ -2,6 +2,7 @@ import pandas as pd
 from dataclasses import dataclass
 from openpyxl.utils import column_index_from_string
 from typing import Tuple, List, Any
+from utils.clean_strings import format_raw_value
 
 def excel_to_indx(col : str, row : int) -> Tuple[int, int]:
     # -1 from index since python uses 0-indexing whereas excel uses 1-indexing
@@ -155,14 +156,7 @@ class GeoSphereInfo:
     
     def get_value(self, l0, l1, l2, l3):
         val = self.get_values(l0, l1, l2, l3)
-        # Ugly nan-check, but avoids having to convert val (type Scalar)
-        match str(val):
-            case "nan":
-                return "—" # Note: em-dash
-            case "0":
-                return ""
-            case res:
-                return res
+        return format_raw_value(val)
 
 @dataclass
 class GeoSphere:

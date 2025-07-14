@@ -36,16 +36,19 @@ index_access: ("[" expression "]")+
 quoted_string: ESCAPED_STRING
 var: "$" CNAME
 var_def: "$" CNAME
-builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE | DESCRIPTION "(" term ")"
+builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE | FORCE_CUTOFF | DESCRIPTION "(" term ")" | SPAN "(" term "," INT ")"
 
 TIME_PERIOD : "!time_period"
 INFLUENCE : "!influence"
 VARIABLES : "!variables"
 NEW_LINE : "!newline"
 DESCRIPTION : "!description"
+FORCE_CUTOFF : "!force_cutoff"
+SPAN : "!span"
 
 %import common.CNAME
 %import common.ESCAPED_STRING
+%import common.INT
 %import common.WS
 %ignore WS
 """
@@ -58,7 +61,7 @@ class Parser():
     def parse(self, code : str):
         self.tree = self.parser.parse(code)
 
-    def execute(self, info : GeoSphereInfo, variable_descriptions : Dict[str, str]):
+    def execute(self, info : GeoSphereInfo, variable_descriptions : Dict[str, str]) -> TableState:
         executor = TableExecutor(info, variable_descriptions)
 
         if self.tree is not None:
@@ -66,8 +69,7 @@ class Parser():
         else:
             raise ValueError("No parse tree found. Perhaps you forgot to parse before executing?")
         
-        for l in executor.table_state._arr:
-            print(l)
+        return executor.table_state
 
 class TableExecutor(Transformer):
     def __init__(self, info : GeoSphereInfo, variable_descriptions : Dict[str, str]):
@@ -109,9 +111,15 @@ class TableExecutor(Transformer):
                 case "!newline":
                     self.table_state.next_row()
                     self.table_state.reset_col()
+                case "!force_cutoff":
+                    self.table_state.force_cutoff()
                 case "!description":
                     arg = self._resolve(args[0])
                     return self.variable_descriptions[arg]
+                case "!span":
+                    text = self._resolve(args[0])
+                    length = int(args[1].value)
+                    self.table_state.add_span(text, length)
         return exec
 
     def concatenation(self, items):
