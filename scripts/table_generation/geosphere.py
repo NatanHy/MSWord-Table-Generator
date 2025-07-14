@@ -32,8 +32,7 @@ def var_to_offset(var : str) -> int:
 
 class GeoSphereInfo:
     def __init__(self, geosphere_id : str, xls : pd.ExcelFile):
-        self.geosphere_id = geosphere_id
-        self.df = xls.parse(f"{self.geosphere_id}_INF", header=None) # Drop headers since excel file is not structured like a dataframe
+        self.df = xls.parse(f"{geosphere_id}_INF", header=None) # Drop headers since excel file is not structured like a dataframe
 
     @property
     def variables(self) -> List[str]:
@@ -148,9 +147,6 @@ class GeoSphereInfo:
 
             try:
                 df = make_first_row_headers(df)
-                # print(df)
-                # print(l0, l1, l2, l3)
-                # print()
                 df = df[l3]
             except:
                 raise ValueError(f"Invalid level 3 index {l3}, valid values are {self.indicies(3)}")

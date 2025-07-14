@@ -1,6 +1,7 @@
 from lark import Lark, Transformer, Tree, v_args
 from table_generation.geosphere import GeoSphereInfo
 from .table_state import TableState
+from typing import Dict
 
 GRAMMAR = r"""
 start: statement+
@@ -11,12 +12,7 @@ start: statement+
 statement: foreach_stmt
          | output_stmt
 
-foreach_stmt: loop_type "(" expression ")" "as" var_def "{" statement+ "}"
-
-loop_type: FOREACHROW | FOREACHCOL
-
-FOREACHROW: "foreachrow"
-FOREACHCOL: "foreachcol"
+foreach_stmt: "foreach" "(" expression ")" "as" var_def "{" statement+ "}"
 
 output_stmt: expression ("|" expression)*
 
@@ -40,12 +36,13 @@ index_access: ("[" expression "]")+
 quoted_string: ESCAPED_STRING
 var: "$" CNAME
 var_def: "$" CNAME
-builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE
+builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE | DESCRIPTION "(" term ")"
 
 TIME_PERIOD : "!time_period"
 INFLUENCE : "!influence"
 VARIABLES : "!variables"
 NEW_LINE : "!newline"
+DESCRIPTION : "!description"
 
 %import common.CNAME
 %import common.ESCAPED_STRING
@@ -60,22 +57,23 @@ class Parser():
 
     def parse(self, code : str):
         self.tree = self.parser.parse(code)
-        print(self.tree.pretty())
 
-    def execute(self, info : GeoSphereInfo):
-        executor = TableExecutor(info)
+    def execute(self, info : GeoSphereInfo, variable_descriptions : Dict[str, str]):
+        executor = TableExecutor(info, variable_descriptions)
 
         if self.tree is not None:
             executor.transform(self.tree)
         else:
             raise ValueError("No parse tree found. Perhaps you forgot to parse before executing?")
         
-        print(executor.table_state._arr)
+        for l in executor.table_state._arr:
+            print(l)
 
 class TableExecutor(Transformer):
-    def __init__(self, info : GeoSphereInfo):
+    def __init__(self, info : GeoSphereInfo, variable_descriptions : Dict[str, str]):
         self.info = info
         self.vars = {}
+        self.variable_descriptions = variable_descriptions
         self.table_state = TableState()
 
     def start(self, items):
@@ -99,7 +97,7 @@ class TableExecutor(Transformer):
         return token.value[1:-1]  # remove quotes
     
     @v_args(inline=True)
-    def builtin_function(self, token):
+    def builtin_function(self, token, *args):
         def exec():
             match token.value:
                 case "!time_period":
@@ -111,6 +109,9 @@ class TableExecutor(Transformer):
                 case "!newline":
                     self.table_state.next_row()
                     self.table_state.reset_col()
+                case "!description":
+                    arg = self._resolve(args[0])
+                    return self.variable_descriptions[arg]
         return exec
 
     def concatenation(self, items):
@@ -126,12 +127,8 @@ class TableExecutor(Transformer):
         return exec
 
     @v_args(inline=True)
-    def foreach_stmt(self, loop_type_tree, iterable_tree, var_def_token, *body):
+    def foreach_stmt(self, iterable_tree, var_def_token, *body):
         def exec():
-            # Since loop_type is a rule in the grammar, the left node is the loop type
-            # loop_type = str(loop_type_tree.children[0])
-            loop_type = self._resolve(loop_type_tree).value
-
             # Index target will already be resolved
             iterable = self._resolve(iterable_tree.children[0])
             var = self._resolve(var_def_token).value
@@ -140,12 +137,6 @@ class TableExecutor(Transformer):
                 self.vars[var] = val
                 for stmt in body:
                     self._resolve(stmt)
-
-                match loop_type:
-                    case "foreachrow":
-                        self.table_state.next_row()
-                    case "foreachcol":
-                        self.table_state.next_col()
         return exec
     
     def output_stmt(self, items):
@@ -153,8 +144,11 @@ class TableExecutor(Transformer):
             for item in items:
                 elm = self._resolve(item)
                 if elm is not None:
-                    self.table_state.set_elm(elm)
-                    self.table_state.next_col()
+                    if isinstance(elm, list):
+                        self.table_state.set_elm(elm[0])
+                    else:
+                        self.table_state.set_elm(elm)
+                    self.table_state.next_col()     
         return exec
 
     def _resolve(self, stmt):
