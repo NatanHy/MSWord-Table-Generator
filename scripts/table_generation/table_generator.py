@@ -6,6 +6,7 @@ import docx.document
 from table_generation.table_config import configure_document, configure_table
 from table_generation.parser import Parser
 from utils.clean_strings import format_raw_value
+import time
 
 def span_text_over_cells(table : FixedTable, pos1 : Tuple[int, int], pos2 : Tuple[int, int], text : str):
     cell = table.cell(*pos1).merge(table.cell(*pos2))
@@ -76,23 +77,24 @@ def merge_table_rows(table : FixedTable, force_cutoffs=[]):
                 prev_cell = cell
 
 
-def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, str]) -> docx.document.Document:
+def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, str], code : str, parser=Parser()) -> docx.document.Document:
     """
     Generates a word document with a table specifying information for the given geosphere. 
     """
+
     word_document = Document()
     configure_document(word_document) # User specified document configuration
 
     info = geosphere.get_info()
-
+    
     # Parse config file
-    with open("scripts/table.cfg", "r") as f:
-        code = f.read()
-
-    parser = Parser()
     parser.parse(code)
-    table_state = parser.execute(info, variable_descriptions)
 
+    start = time.time()
+    table_state = parser.execute(info, variable_descriptions)
+    end = time.time()
+    print(f"execute: {end - start:.3f}")
+    
     table = FixedTable(word_document, table_state.rows, table_state.cols)
 
     for i in range(table_state.rows):
@@ -105,7 +107,11 @@ def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, s
         cell1.merge(cell2)
         cell1.text = span.text
 
+    start = time.time()
     merge_table_rows(table, force_cutoffs=table_state.force_cutoffs)
-    configure_table(table) # User specified table configuration
+    end = time.time()
+    print(f"merge: {end - start:.3f}")
 
+    configure_table(table) # User specified table configuration
+    
     return word_document

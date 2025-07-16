@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from openpyxl.utils import column_index_from_string
 from typing import Tuple, List, Any
 from utils.clean_strings import format_raw_value
+from functools import cache
 
 def excel_to_indx(col : str, row : int) -> Tuple[int, int]:
     # -1 from index since python uses 0-indexing whereas excel uses 1-indexing
@@ -73,8 +74,10 @@ class GeoSphereInfo:
                 return list(set(values))
             case _:
                 return []
-                
-    def _get_var_df(self, n) -> pd.DataFrame:
+    
+    @cache
+    def _get_l0_df(self, l0) -> pd.DataFrame:
+        n = var_to_offset(l0)
         # i, j is the index of the "top-left" item for the given variable
         j, i = excel_to_indx("F", 56)
 
@@ -88,75 +91,63 @@ class GeoSphereInfo:
         # Extract rows from the DataFrame
         df = self.df.iloc[row_indices, list(col_range - col_exclude)]
         return df
+    
+    @cache
+    def _get_l1_df(self, l0, l1) -> pd.DataFrame:
+        l0_df = self._get_l0_df(l0)
+        match l1:
+            case "Variable influence on process":
+                return l0_df.iloc[[0, 1, 2]]
+            case "Process influence on variable":
+                return l0_df.iloc[[0, 1, 3]]
+            case _:
+                raise ValueError(f"Invalid level 1 index {l1}, valid values are {self.indicies(1)}")
 
+    @cache
+    def _get_l2_df(self, l0, l1, l2) -> pd.DataFrame:
+        l1_df = self._get_l1_df(l0, l1)
+        try:
+            headers = l1_df.iloc[0]
+            match_indices = [i for i, val in enumerate(headers) if val == l2]
+            
+            # For each match, get the index plus the next column (if it exists)
+            cols_to_keep_indices = []
+            for i in match_indices:
+                cols_to_keep_indices.append(i)
+                if i + 1 <= len(headers):
+                    cols_to_keep_indices.append(i + 1)
 
-    def get_values(self, l0=None, l1=None, l2=None, l3=None) -> Any:
+            # Get column names based on indices
+            cols_to_keep = l1_df.columns[cols_to_keep_indices]
+
+            # Select columns (all rows)
+            return l1_df.iloc[1:, l1_df.columns.get_indexer(cols_to_keep)]
+        except IndexError:
+            raise ValueError(f"\nInvalid level 2 index {l2}, valid values are {self.indicies(2)}")
+
+    @cache
+    def _get_l3_df(self, l0, l1, l2, l3) -> pd.DataFrame:
+        l2_df = self._get_l2_df(l0, l1, l2)
+        if l3 not in self.indicies(3):
+            raise ValueError(f"Invalid level 3 index {l3}, valid values are {self.indicies(3)}")
+
+        try:
+            df = make_first_row_headers(l2_df)
+            return df[l3]
+        except:
+            raise ValueError(f"Invalid level 3 index {l3}, valid values are {self.indicies(3)}")
+
+    def get_value(self, l0, l1, l2, l3) -> str:
         """
-        Get a dataframe of values in the excel file using 4-component indexing. Leaving indeces unspecified gives all elements
-        for every possible value of the index. 
+        Get a dataframe of values in the excel file using 4-component indexing.
 
         ## Examples
         ```
         get_value("VarGe01", "Variable influence on process", "Temperate", "Rationale")
         ```
-        ```
-        get_value("VarGe01", "Process influence on variable")
-        ```
         """
-
-        df = self.df
-
-        if l0 is not None:
-            try:
-                df = self._get_var_df(var_to_offset(l0))
-            except:
-                raise ValueError(f"Invalid level 0 index {l0}, valid values are {self.indicies(0)}")
-
-        if l1 is not None:
-            match l1:
-                case "Variable influence on process":
-                    df = df.iloc[[0, 1, 2]]
-                case "Process influence on variable":
-                    df = df.iloc[[0, 1, 3]]
-                case _:
-                    raise ValueError(f"Invalid level 1 index {l1}, valid values are {self.indicies(1)}")
-        
-        if l2 is not None:
-            try:
-                headers = df.iloc[0]
-                match_indices = [i for i, val in enumerate(headers) if val == l2]
-                
-                # For each match, get the index plus the next column (if it exists)
-                cols_to_keep_indices = []
-                for i in match_indices:
-                    cols_to_keep_indices.append(i)
-                    if i + 1 <= len(headers):
-                        cols_to_keep_indices.append(i + 1)
-
-                # Get column names based on indices
-                cols_to_keep = df.columns[cols_to_keep_indices]
-
-                # Select columns (all rows)
-                df = df.iloc[1:, df.columns.get_indexer(cols_to_keep)]
-
-            except IndexError:
-                raise ValueError(f"\nInvalid level 2 index {l2}, valid values are {self.indicies(2)}")
-
-        if l3 is not None:
-            if l3 not in self.indicies(3):
-                raise ValueError(f"Invalid level 3 index {l3}, valid values are {self.indicies(3)}")
-
-            try:
-                df = make_first_row_headers(df)
-                df = df[l3]
-            except:
-                raise ValueError(f"Invalid level 3 index {l3}, valid values are {self.indicies(3)}")
-        
-        return df
-    
-    def get_value(self, l0, l1, l2, l3):
-        val = self.get_values(l0, l1, l2, l3)
-        return format_raw_value(val)
+        df = self._get_l3_df(l0, l1, l2, l3)
+        return format_raw_value(df.iat[0])
 
 @dataclass
 class GeoSphere:

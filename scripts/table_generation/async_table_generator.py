@@ -1,5 +1,6 @@
 import pandas as pd
 from typing import Iterable
+from table_generation import CFG_FILE_PATH
 from table_generation.table_generator import generate_document
 from table_generation.table import Table
 import time, queue, sys, threading
@@ -25,6 +26,7 @@ class AsyncTableGenerator:
             self.stdout_redirect = stdout_redirect
 
         self.stop_event = threading.Event()
+        self._code = "" # Code file will be read at runtime
 
     def is_running(self) -> bool:
         return self.thread is not None and self.thread.is_alive()
@@ -34,6 +36,9 @@ class AsyncTableGenerator:
         Start a thread for generating tables. 
         """
         def task():
+            with open(CFG_FILE_PATH, "r") as f:
+                self._code = f.read()
+
             # Using context manager to redirect stdout
             with redirect_stdout_to(self.stdout_redirect):
                 for xls_path in xls_paths:
@@ -77,7 +82,7 @@ class AsyncTableGenerator:
         # Try generating word document and add it to the queue
         try:
             start = time.time()
-            document = generate_document(geosphere, variable_descriptions)
+            document = generate_document(geosphere, variable_descriptions, self._code)
             self.queue.put(Table(document, xls_path, geosphere.id))
             end = time.time()
             print(f"    Generated table for {geosphere.id} : Success | {end - start:.2f}s")
