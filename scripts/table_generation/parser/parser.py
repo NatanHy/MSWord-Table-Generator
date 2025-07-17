@@ -35,7 +35,7 @@ index_access: ("[" expression "]")+
 // -------------------
 quoted_string: ESCAPED_STRING
 var: "$" CNAME
-builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE | FORCE_CUTOFF | DESCRIPTION "(" term ")" | SPAN "(" term "," INT ")"
+builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE | FORCE_CUTOFF | DESCRIPTION "(" term ")" | BOLD "(" term ")" | SPAN "(" term "," INT ")"
 
 TIME_PERIOD : "!time_period"
 INFLUENCE : "!influence"
@@ -44,6 +44,7 @@ NEW_LINE : "!newline"
 DESCRIPTION : "!description"
 FORCE_CUTOFF : "!force_cutoff"
 SPAN : "!span"
+BOLD : "!bold"
 
 %import common.CNAME
 %import common.ESCAPED_STRING
@@ -141,8 +142,14 @@ class TableExecutor(Transformer):
             case "!description":
                 arg, is_static = self._static_resolve(args[0])
                 if is_static:
-                    return self.variable_descriptions[arg]
-                return lambda: self.variable_descriptions[self._resolve(arg)]
+                    return self.variable_descriptions[arg] #type: ignore
+                return lambda: self.variable_descriptions[self._resolve(arg)] #type: ignore
+            case "!bold":
+                def exec():
+                    text = self._resolve(args[0])
+                    self.table_state.set_style({"bold" : True})
+                    return text
+                return exec
             case "!newline":
                 def exec():
                     self.table_state.next_row()
@@ -155,7 +162,7 @@ class TableExecutor(Transformer):
                     self.table_state.add_span(text, length)
                 return exec
 
-    def concatenation(self, items):
+    def expression(self, items):
         # Resolve left and right statically as far as possible
         left, l_is_static = self._static_resolve(items[0])
         if len(items) == 1:
@@ -197,10 +204,7 @@ class TableExecutor(Transformer):
             for item in items:
                 elm = self._resolve(item)
                 if elm is not None:
-                    if isinstance(elm, list):
-                        self.table_state.set_elm(elm)
-                    else:
-                        self.table_state.set_elm(elm)
+                    self.table_state.set_text(elm)
                     self.table_state.next_col()     
         return exec
     

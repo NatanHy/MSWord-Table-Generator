@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Iterable
-from table_generation import CFG_FILE_PATH
+from config.document_config import DSL_FILE_PATH
 from table_generation.table_generator import generate_document
 from table_generation.table import Table
 import time, queue, sys, threading
@@ -36,7 +36,7 @@ class AsyncTableGenerator:
         Start a thread for generating tables. 
         """
         def task():
-            with open(CFG_FILE_PATH, "r") as f:
+            with open(DSL_FILE_PATH, "r") as f:
                 self._code = f.read()
 
             # Using context manager to redirect stdout

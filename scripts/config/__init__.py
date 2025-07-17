@@ -1,0 +1,1 @@
+from .document_config import *

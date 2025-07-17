@@ -1,8 +1,16 @@
+from dataclasses import dataclass, field
+from typing import Tuple, List, Dict, Any
+
+@dataclass
 class Span:
-    def __init__(self, pos1, pos2, text):
-        self.pos1 = pos1
-        self.pos2 = pos2
-        self.text = text
+    pos1 : Tuple[int, int]
+    pos2 : Tuple[int, int]
+    text : str
+
+@dataclass
+class Text:
+    text : str = ""
+    style : Dict[str, Any] = field(default_factory=dict)
 
 class TableState:
     def __init__(self):
@@ -10,17 +18,23 @@ class TableState:
         self._cur_j = 0
         self.rows = 1
         self.cols = 1
-        self.arr = [[None]]
+        self.arr : List[List[Text]] = [[Text()]]
         self.force_cutoffs = []
         self.spans = []
 
-    def set_elm(self, elm):
+    def _expand(self):
         while self._cur_i >= self.rows:
             self._append_row()
         while self._cur_j >= self.cols:
             self._append_col()
 
-        self.arr[self._cur_i][self._cur_j] = elm
+    def set_text(self, text):
+        self._expand()
+        self.arr[self._cur_i][self._cur_j].text = text
+
+    def set_style(self, style={}):
+        self._expand()
+        self.arr[self._cur_i][self._cur_j].style = style
 
     def reset_col(self):
         self._cur_j = 0
@@ -46,11 +60,11 @@ class TableState:
 
     def _append_row(self):
         # Add empty row to the end
-        self.arr.append([None for _ in range(self.cols)])
+        self.arr.append([Text() for _ in range(self.cols)])
         self.rows += 1
 
     def _append_col(self):
         # Add an empty element to each row
         for l in self.arr:
-            l.append(None)
+            l.append(Text())
         self.cols += 1

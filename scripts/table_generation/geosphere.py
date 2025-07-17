@@ -2,7 +2,7 @@ import pandas as pd
 from dataclasses import dataclass
 from openpyxl.utils import column_index_from_string
 from typing import Tuple, List, Any
-from utils.clean_strings import format_raw_value
+from utils.formatting import format_raw_value
 from functools import cache
 
 def excel_to_indx(col : str, row : int) -> Tuple[int, int]:

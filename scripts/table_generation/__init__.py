@@ -1,1 +1,0 @@
-CFG_FILE_PATH = "scripts/table.cfg"
