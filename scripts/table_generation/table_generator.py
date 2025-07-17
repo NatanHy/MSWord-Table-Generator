@@ -1,7 +1,8 @@
 from table_generation.geosphere import GeoSphere, GeoSphereInfo
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 from table_generation.fixed_table import FixedTable
 from docx import Document
+from docx.table import _Cell
 import docx.document
 from table_generation.table_config import configure_document, configure_table
 from table_generation.parser import Parser
@@ -47,54 +48,57 @@ def add_info(table : FixedTable, info : GeoSphereInfo, variable_descriptions : D
             
             row += 1
 
+def _get_col_sequences(table : FixedTable, col : int, force_cutoffs) -> List[Tuple[_Cell, _Cell]]:
+    start = 0
+    cur = 1
+    start_cell = table.cell(start, col)
+    seqs = []
+
+    # Iterate over rows
+    while cur < table.rows:
+        cell = table.cell(cur, col)
+
+        # Found a row with different text, or a forced cutoff
+        if cell.text != start_cell.text or cur in force_cutoffs:
+            # If more than 1 consecutive cell with identical text, merge
+            if cur - start > 1:
+                end_cell = table.cell(cur - 1, col)
+                seqs.append((start_cell, end_cell))
+            start = cur # Next sequence starts at cur
+            start_cell = cell
+        cur += 1
+
+    # Run one more check to include last sequence
+    if cur - start > 1:
+        end_cell = table.cell(cur - 1, col)
+        seqs.append((start_cell, end_cell))
+
+    return seqs
+
 def merge_table_rows(table : FixedTable, force_cutoffs=[]):
     for col in range(table.cols):
-        prev_cell = None
-        start_cell_row = 0
-
-        for row in range(table.rows):
-            cell = table.cell(row, col)
-
-            if prev_cell is not None and cell.text == prev_cell.text and not row in force_cutoffs:
-                if row == table.rows - 1:
-                    if row != start_cell_row:
-                        text_before_merge = prev_cell.text
-                        table.cell(row, col).merge(table.cell(start_cell_row, col))
-                        prev_cell.text = text_before_merge
-                continue
-            else:
-                if prev_cell is None:
-                    start_cell_row = row
-                    prev_cell = cell
-                    continue
-
-                if row != start_cell_row + 1:
-                    text_before_merge = prev_cell.text
-                    table.cell(row - 1, col).merge(table.cell(start_cell_row, col))
-                    prev_cell.text = text_before_merge
-
-                start_cell_row = row
-                prev_cell = cell
-
+        seqs = _get_col_sequences(table, col, force_cutoffs)
+        for start_cell, end_cell in seqs:
+            text_before_merge = start_cell.text
+            start_cell.merge(end_cell)
+            start_cell.text = text_before_merge
 
 def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, str], code : str, parser=Parser()) -> docx.document.Document:
     """
     Generates a word document with a table specifying information for the given geosphere. 
     """
 
+    start_tot = time.time()
+
     word_document = Document()
     configure_document(word_document) # User specified document configuration
-
     info = geosphere.get_info()
-    
-    # Parse config file
-    parser.parse(code)
 
-    start = time.time()
+    # Parse config file
+
+    parser.parse(code)
     table_state = parser.execute(info, variable_descriptions)
-    end = time.time()
-    print(f"execute: {end - start:.3f}")
-    
+
     table = FixedTable(word_document, table_state.rows, table_state.cols)
 
     for i in range(table_state.rows):
@@ -107,6 +111,8 @@ def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, s
         cell1.merge(cell2)
         cell1.text = span.text
 
+    end = time.time()
+
     start = time.time()
     merge_table_rows(table, force_cutoffs=table_state.force_cutoffs)
     end = time.time()
@@ -114,4 +120,6 @@ def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, s
 
     configure_table(table) # User specified table configuration
     
+    end_tot = time.time()
+    print(f"Total: {end_tot - start_tot:.3f}")
     return word_document
