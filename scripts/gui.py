@@ -2,6 +2,7 @@ from tkinter import TOP, BOTTOM, LEFT, RIGHT
 from tkinterdnd2 import TkinterDnD, DND_ALL
 import customtkinter as ctk
 from gui.file_item import FileItem
+from gui.pop_up_window import PopUpWindow
 from table_generation.table import Table
 from gui.text_box_redirect import TextboxRedirector
 from table_generation.async_table_generator import AsyncTableGenerator
@@ -47,26 +48,49 @@ def hide_ui_element(elm):
 def remove_file_item(file_item : FileItem):
     selected_file_paths.remove(file_item.file_path)
 
-def add_files(paths):
+def add_files(paths : List[str]):
+    wrong_files = []
     for path in paths:
         if path not in selected_file_paths:
-            item = FileItem(file_list_scroll_frame, path, remove_file_item)
-            file_items.append(item)
-            selected_file_paths.add(path)
+            if path.endswith(".xls") or path.endswith(".xlsx"):
+                add_file_item(path)
+            else:
+                wrong_files.append(path)
+    
+    if wrong_files:
+        show_wrong_file_popup(wrong_files)
+
+def add_file_item(path):
+    item = FileItem(file_list_scroll_frame, path, remove_file_item)
+    file_items.append(item)
+    selected_file_paths.add(path)
 
 def drag_and_drop_files(event):
     raw_data = event.data.strip()
     file_paths = raw_data.split("}")  # supports multiple files
     cleaned_paths = [path.strip("{} ") for path in file_paths]
-    add_files(cleaned_paths)
-
     next_frame(fill="both")
+    
+    add_files(cleaned_paths)
 
 def select_files():
     file_paths = ctk.filedialog.askopenfilenames()
-    add_files(file_paths)
+    if file_paths:
+        add_files(file_paths)
+        next_frame(fill="both")
 
-    next_frame(fill="both")
+def show_wrong_file_popup(file_paths : List[str]):
+    popup_win = PopUpWindow(root, "Wrong file type", "Provided files must be excel files.")
+
+    def add_anyway():
+        for path in file_paths:
+            add_file_item(path)
+        popup_win.destroy()
+
+    add_button = ctk.CTkButton(popup_win, text="Add anyway", command=add_anyway)
+    ok_button = ctk.CTkButton(popup_win, text="Ok", command=popup_win.destroy)
+    add_button.pack(side=LEFT, padx=5, pady=5)
+    ok_button.pack(side=RIGHT, padx=5, pady=5)
 
 def next_frame(**kwargs):
     global current_frame
@@ -148,31 +172,7 @@ def save_tables():
     show_save_confirmation(output_dir)
 
 def show_save_confirmation(folder_path):
-    confirm_win = ctk.CTkToplevel()
-    confirm_win.title("Save Complete")
-
-    # --- Center the popup over the main window ---
-    confirm_win.update_idletasks()
-    main_x = root.winfo_rootx()
-    main_y = root.winfo_rooty()
-    main_width = root.winfo_width()
-    main_height = root.winfo_height()
-
-    popup_width = 300
-    popup_height = 120
-
-    pos_x = main_x + (main_width // 2) - (popup_width // 2)
-    pos_y = main_y + (main_height // 2) - (popup_height // 2)
-
-    confirm_win.geometry(f"{popup_width}x{popup_height}+{pos_x}+{pos_y}")
-    confirm_win.resizable(False, False)
-
-    confirm_win.lift()           # Bring to front
-    confirm_win.focus_force()    # Grab focus
-    confirm_win.attributes("-topmost", True)  # Force it above all windows
-
-    label = ctk.CTkLabel(confirm_win, text="✅ Tables saved successfully!")
-    label.pack(pady=(20, 5))
+    confirm_win = PopUpWindow(root, "Save Complete", "✅ Tables saved successfully!")
 
     def open_folder():
         if platform.system() == "Windows":
@@ -188,6 +188,7 @@ def show_save_confirmation(folder_path):
     ok_button = ctk.CTkButton(confirm_win, text="Ok", command=confirm_win.destroy)
     open_button.pack(side=LEFT, padx=5, pady=5)
     ok_button.pack(side=RIGHT, padx=5, pady=5)
+
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("system")

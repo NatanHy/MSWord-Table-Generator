@@ -49,10 +49,8 @@ class AsyncTableGenerator:
 
     def _process_file(self, xls_path: str):
         print(f"Parsing {xls_path}")
-        try:
-            xls = pd.ExcelFile(xls_path)
-        except FileNotFoundError as e:
-            raise e
+
+        xls = pd.ExcelFile(xls_path)
 
         geospheres = parse_geospheres(xls)
         variable_descriptions = parse_variables(xls)
