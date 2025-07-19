@@ -72,7 +72,7 @@ def drag_and_drop_files(event):
     raw_data = event.data.strip()
     file_paths = raw_data.split("}")  # supports multiple files
     cleaned_paths = [path.strip("{} ") for path in file_paths]
-    next_frame(fill="both")
+    go_to_frame(1, fill="both")
 
     add_files(cleaned_paths)
 
@@ -83,7 +83,7 @@ def add_more_files():
 
 def select_files():
     add_more_files()
-    next_frame(fill="both")
+    go_to_frame(1, fill="both")
 
 def show_wrong_file_popup(file_paths : List[str]):
     popup_win = PopUpWindow(root, "Wrong file type", "Provided files must be excel files.")
@@ -98,17 +98,16 @@ def show_wrong_file_popup(file_paths : List[str]):
     add_button.pack(side=LEFT, padx=5, pady=5)
     ok_button.pack(side=RIGHT, padx=5, pady=5)
 
-def next_frame(**kwargs):
+def go_to_frame(frame, **kwargs):
     global current_frame
-
     hide_ui_element(frames[current_frame])
-    current_frame += 1
 
-    if current_frame >= len(frames):
-        return
+    current_frame = frame
 
     display_ui_element(frames[current_frame], **kwargs)
-    back_button.place(x=10, y=10)
+
+    if current_frame != 0:
+        back_button.place(x=10, y=10)
 
 def prev_frame(**kwargs):
     global current_frame
@@ -137,7 +136,7 @@ def back():
 def gen_tables():
     global recieved_tables
     
-    next_frame(fill="both")
+    go_to_frame(2, fill="both")
     recieved_tables = [] # Clear tables left from previous generate
     async_table_generator.stop_event.clear() # Make sure the stop flag is set to false
 
@@ -239,6 +238,8 @@ if __name__ == "__main__":
 
     # Container for elements shown once files have been chosen
     files_chosen_frame = ctk.CTkFrame(root, fg_color="transparent")
+    files_chosen_frame.drop_target_register(DND_ALL) # type: ignore
+    files_chosen_frame.dnd_bind("<<Drop>>", drag_and_drop_files) # type: ignore
     # Frame to display while generating tables
     generating_frame = ctk.CTkFrame(root, fg_color="transparent")
 

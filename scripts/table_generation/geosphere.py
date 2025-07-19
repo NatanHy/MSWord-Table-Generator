@@ -131,7 +131,7 @@ class GeoSphereInfo:
             cols_to_keep = l1_df.columns[cols_to_keep_indices]
 
             # Select columns (all rows)
-            return l1_df.iloc[1:, l1_df.columns.get_indexer(cols_to_keep)]
+            return l1_df.iloc[1:, l1_df.columns.get_indexer(cols_to_keep)] #type: ignore
         except IndexError:
             raise ValueError(f"\nInvalid level 2 index {l2}, valid values are {self.indicies(2)}")
 
