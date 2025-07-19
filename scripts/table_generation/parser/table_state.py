@@ -10,7 +10,7 @@ class Span:
 @dataclass
 class Text:
     text : str = ""
-    style : Dict[str, Any] = field(default_factory=dict)
+    style : str = ""
 
 class TableState:
     def __init__(self):

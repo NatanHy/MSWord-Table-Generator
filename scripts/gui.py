@@ -37,6 +37,9 @@ class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
         super().__init__(*args, **kwargs)
         self.TkdndVersion = TkinterDnD._require(self)
 
+def disable_button(button): 
+    button.configure(state="disabled", fg_color="#5a5a5a", text_color="gray80")
+
 def display_ui_element(elm, **kwargs):
     elm.pack(**kwargs)
 
@@ -70,14 +73,17 @@ def drag_and_drop_files(event):
     file_paths = raw_data.split("}")  # supports multiple files
     cleaned_paths = [path.strip("{} ") for path in file_paths]
     next_frame(fill="both")
-    
+
     add_files(cleaned_paths)
 
-def select_files():
+def add_more_files():
     file_paths = ctk.filedialog.askopenfilenames()
     if file_paths:
         add_files(file_paths)
-        next_frame(fill="both")
+
+def select_files():
+    add_more_files()
+    next_frame(fill="both")
 
 def show_wrong_file_popup(file_paths : List[str]):
     popup_win = PopUpWindow(root, "Wrong file type", "Provided files must be excel files.")
@@ -116,12 +122,14 @@ def prev_frame(**kwargs):
     display_ui_element(frames[current_frame], **kwargs)
 
 def back():
+    print(current_frame)
     match current_frame:
         case 1:
             hide_ui_element(back_button)
             prev_frame(**FRAME_1_KW)
         case 2:
             prev_frame(**FRAME_2_KW)
+            disable_button(save_button)
             async_table_generator.stop_event.set()
         case _:
             return # Back button should not do anything on first frame
@@ -148,7 +156,7 @@ def poll_table_queue():
         recieved_tables.append(table)
     except queue.Empty:
         # Table generation completed
-        if not async_table_generator.is_running():
+        if async_table_generator.is_done():
             # Allow saving of files
             save_button.configure(state="normal", fg_color=choose_file_button._fg_color, text_color="white")
 
@@ -284,7 +292,7 @@ if __name__ == "__main__":
         image=add_files_img,
         compound="left",
         text=" Add more files",
-        command=select_files
+        command=add_more_files
     )
 
     # Button for generating the tables

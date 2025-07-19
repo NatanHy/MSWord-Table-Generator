@@ -35,7 +35,7 @@ index_access: ("[" expression "]")+
 // -------------------
 quoted_string: ESCAPED_STRING
 var: "$" CNAME
-builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE | FORCE_CUTOFF | DESCRIPTION "(" term ")" | BOLD "(" term ")" | SPAN "(" term "," INT ")"
+builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE | FORCE_CUTOFF | DESCRIPTION "(" term ")" | STYLE "(" term ")" | SPAN "(" term "," INT ")"
 
 TIME_PERIOD : "!time_period"
 INFLUENCE : "!influence"
@@ -44,7 +44,7 @@ NEW_LINE : "!newline"
 DESCRIPTION : "!description"
 FORCE_CUTOFF : "!force_cutoff"
 SPAN : "!span"
-BOLD : "!bold"
+STYLE : "!style"
 
 %import common.CNAME
 %import common.ESCAPED_STRING
@@ -83,6 +83,7 @@ class TableExecutor(Transformer):
         self.info = info
         self.vars = {}
         self.variable_descriptions = variable_descriptions
+        self.style = ""
         self.table_state = TableState()
 
     def start(self, items):
@@ -144,11 +145,10 @@ class TableExecutor(Transformer):
                 if is_static:
                     return self.variable_descriptions[arg] #type: ignore
                 return lambda: self.variable_descriptions[self._resolve(arg)] #type: ignore
-            case "!bold":
+            case "!style":
                 def exec():
-                    text = self._resolve(args[0])
-                    self.table_state.set_style({"bold" : True})
-                    return text
+                    arg = self._resolve(args[0])
+                    self.style = arg
                 return exec
             case "!newline":
                 def exec():
@@ -159,6 +159,7 @@ class TableExecutor(Transformer):
                 def exec():
                     text = self._resolve(args[0])
                     length = args[1]
+                    self.table_state.set_style(self.style)
                     self.table_state.add_span(text, length)
                 return exec
 
@@ -204,6 +205,7 @@ class TableExecutor(Transformer):
             for item in items:
                 elm = self._resolve(item)
                 if elm is not None:
+                    self.table_state.set_style(self.style)
                     self.table_state.set_text(elm)
                     self.table_state.next_col()     
         return exec

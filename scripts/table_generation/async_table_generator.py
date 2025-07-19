@@ -28,8 +28,11 @@ class AsyncTableGenerator:
         self.stop_event = threading.Event()
         self._code = "" # Code file will be read at runtime
 
-    def is_running(self) -> bool:
-        return self.thread is not None and self.thread.is_alive()
+    def is_done(self) -> bool:
+        is_running = self.thread is not None and self.thread.is_alive()
+
+        # If the thread is running or was stopped return false
+        return (not is_running) and (not self.stop_event.is_set())
 
     def generate_tables(self, xls_paths: Iterable[str]):
         """
