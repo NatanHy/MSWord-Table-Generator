@@ -1,4 +1,4 @@
-from table_generation.geosphere import GeoSphere
+from table_generation.component import Component
 from table_generation.fixed_table import FixedTable
 from table_generation.parser import Parser
 from typing import Tuple, Dict, List
@@ -45,16 +45,16 @@ def merge_table_rows(table : FixedTable, force_cutoffs=[]):
             start_cell.merge(end_cell)
             start_cell.text = text_before_merge
 
-def generate_document(geosphere : GeoSphere, variable_descriptions : Dict[str, str], code : str, parser=Parser()) -> docx.document.Document:
+def generate_document(component : Component, variable_descriptions : Dict[str, str], code : str, parser=Parser()) -> docx.document.Document:
     """
-    Generates a word document with a table specifying information for the given geosphere. 
+    Generates a word document with a table specifying information for the given component. 
     """
 
     word_document = Document()
 
     # Apply document-wide configuration
     format_document(word_document) 
-    info = geosphere.get_info()
+    info = component.get_info()
 
     # Parse and execute table dsl file
     parser.parse(code)

@@ -1,5 +1,5 @@
 from lark import Lark, Transformer, Tree, Token, v_args
-from table_generation.geosphere import GeoSphereInfo
+from table_generation.component import ComponentInfo
 from .table_state import TableState
 from typing import Dict
 
@@ -68,7 +68,7 @@ class Parser():
         self._cached[code] = tree
         self.tree = tree
 
-    def execute(self, info : GeoSphereInfo, variable_descriptions : Dict[str, str]) -> TableState:
+    def execute(self, info : ComponentInfo, variable_descriptions : Dict[str, str]) -> TableState:
         executor = TableExecutor(info, variable_descriptions)
 
         if self.tree is not None:
@@ -79,7 +79,7 @@ class Parser():
         return executor.table_state
     
 class TableExecutor(Transformer):
-    def __init__(self, info : GeoSphereInfo, variable_descriptions : Dict[str, str]):
+    def __init__(self, info : ComponentInfo, variable_descriptions : Dict[str, str]):
         self.info = info
         self.vars = {}
         self.variable_descriptions = variable_descriptions

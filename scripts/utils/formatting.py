@@ -22,10 +22,8 @@ def format_raw_value(val : Any) -> str:
 
     # Ugly nan-check, but avoids additional conversion
     match str(val):
-        case "nan":
-            return "—" # Note: em-dash
-        case "0":
-            return ""
+        case "nan" | "0":
+            return "" 
         case res:
             return res
         

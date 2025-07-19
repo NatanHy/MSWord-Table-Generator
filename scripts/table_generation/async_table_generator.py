@@ -5,7 +5,7 @@ from table_generation.table_generator import generate_document
 from table_generation.table import Table
 import time, queue, sys, threading
 from utils.redirect_manager import redirect_stdout_to
-from utils.xls_parsing import parse_geospheres, parse_variables
+from utils.xls_parsing import parse_components, parse_variables
 
 class AsyncTableGenerator:
     """
@@ -55,7 +55,7 @@ class AsyncTableGenerator:
 
         xls = pd.ExcelFile(xls_path)
 
-        geospheres = parse_geospheres(xls)
+        components = parse_components(xls)
         variable_descriptions = parse_variables(xls)
 
         print("Done.")
@@ -65,13 +65,13 @@ class AsyncTableGenerator:
         successful = 0
         unsuccessful = 0
 
-        for geosphere in geospheres:
+        for component in components:
             # Abort generation if stop flag is set
             if self.stop_event.is_set():
                 print("Operation terminated.")
                 return
 
-            success = self._generate_table(geosphere, variable_descriptions, xls_path)
+            success = self._generate_table(component, variable_descriptions, xls_path)
             if success:
                 successful += 1
             else:
@@ -79,15 +79,15 @@ class AsyncTableGenerator:
 
         print(f"Operation completed. Generated {successful} table(s). Success {successful} | Fail {unsuccessful}")
 
-    def _generate_table(self, geosphere, variable_descriptions, xls_path) -> bool:
+    def _generate_table(self, component, variable_descriptions, xls_path) -> bool:
         # Try generating word document and add it to the queue
         try:
             start = time.time()
-            document = generate_document(geosphere, variable_descriptions, self._code)
-            self.queue.put(Table(document, xls_path, geosphere.id))
+            document = generate_document(component, variable_descriptions, self._code)
+            self.queue.put(Table(document, xls_path, component.id))
             end = time.time()
-            print(f"    Generated table for {geosphere.id} : Success | {end - start:.2f}s")
+            print(f"    Generated table for {component.id} : Success | {end - start:.2f}s")
             return True
         except Exception as e:
-            print(f"    Failed to generate table for {geosphere.id} : {e}")
+            print(f"    Failed to generate table for {component.id} : {e}")
             return False
