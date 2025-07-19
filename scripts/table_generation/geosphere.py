@@ -5,6 +5,16 @@ from typing import Tuple, List, Any
 from utils.formatting import format_raw_value
 from functools import cache
 
+VAR_COL = "C" # Column where variables are e.g. VarGe01
+VAR_ROW = 19  # Row of top-most variable (VarGe01)
+VIP_ROW = 17  # Row of time periods for "Variable influence on process"
+PIV_ROW = 34  # Row of time periods for "Process influence on variable"
+DESC_ROW = 18 # Row of Yes/No, Description, How, Rationale
+
+# Top left cell of the input area (where the data is located)
+VAR_INF_COL = "F"
+VAR_INF_ROW = 56
+
 def excel_to_indx(col : str, row : int) -> Tuple[int, int]:
     # -1 from index since python uses 0-indexing whereas excel uses 1-indexing
     return (column_index_from_string(col) - 1, row - 1)
@@ -62,15 +72,15 @@ class GeoSphereInfo:
         match level:
             case 0:
                 # Extract column with just variable names as a flat list
-                return get_cell_range("C", 19, 1, 13, self.df).iloc[:, 0].tolist()
+                return get_cell_range(VAR_COL, VAR_ROW, 1, 13, self.df).iloc[:, 0].tolist()
             case 1:
                 return ["Variable influence on process", "Process influence on variable"]
             case 2:
-                vip = get_non_null_values_from_row(self.df, 17).to_list()
-                piv = get_non_null_values_from_row(self.df, 34).to_list()
+                vip = get_non_null_values_from_row(self.df, VIP_ROW).to_list()
+                piv = get_non_null_values_from_row(self.df, PIV_ROW).to_list()
                 return vip if len(vip) > len(piv) else piv
             case 3:
-                values = get_non_null_values_from_row(self.df, 18).to_list()[1:]
+                values = get_non_null_values_from_row(self.df, DESC_ROW).to_list()[1:]
                 return list(set(values))
             case _:
                 return []
@@ -79,7 +89,7 @@ class GeoSphereInfo:
     def _get_l0_df(self, l0) -> pd.DataFrame:
         n = var_to_offset(l0)
         # i, j is the index of the "top-left" item for the given variable
-        j, i = excel_to_indx("F", 56)
+        j, i = excel_to_indx(VAR_INF_COL, VAR_INF_ROW)
 
         # Row offsets from "Variable influence on process" to "Process influence on variable"
         piv_offset = 17
