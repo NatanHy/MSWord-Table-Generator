@@ -2,6 +2,7 @@ from lark import Lark, Transformer, Tree, Token, v_args
 from table_generation.component import ComponentInfo
 from .table_state import TableState
 from typing import Dict
+import ast
 
 GRAMMAR = r"""
 start: statement+
@@ -127,7 +128,8 @@ class TableExecutor(Transformer):
     
     @v_args(inline=True)
     def quoted_string(self, token):
-        return token.value[1:-1]  # remove quotes
+        # use literal eval to evaluate escape sequences
+        return ast.literal_eval(token.value)
     
     @v_args(inline=True)
     def builtin_function(self, token, *args):
@@ -165,26 +167,14 @@ class TableExecutor(Transformer):
 
     def expression(self, items):
         # Resolve left and right statically as far as possible
-        left, l_is_static = self._static_resolve(items[0])
+        left, _ = self._static_resolve(items[0])
         if len(items) == 1:
             return left
-        
-        right, r_is_static = self._static_resolve(items[1])
-
-        if l_is_static and r_is_static:
-            # If they can be statically concatenated, do so right away
-            return str(left) + str(right)
-
-        # If left or right cannot be statically resolved, defer the concatenation and return a function
+    
         def exec():
-            l = self._resolve(left)
-
-            if len(items) == 1:
-                return left
-
-            r = self._resolve(right)
-
-            return str(l) + str(r)
+            resolved = [self._resolve(item) for item in items]
+            stringified = [str(r) for r in resolved]
+            return "".join(stringified)
         return exec
 
     @v_args(inline=True)

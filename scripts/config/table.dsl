@@ -9,7 +9,7 @@ foreach(!variables) as $var {
     foreach(!time_period) as $time {
         !description($var)
         foreach(!influence) as $influence {
-            [$var][$influence]["Influence present?"]["Yes/No"] + [$var][$influence]["Influence present?"]["Description"] | 
+            [$var][$influence]["Influence present?"]["Yes/No"] + "\n" + [$var][$influence]["Influence present?"]["Description"] | 
             $time | 
             [$var][$influence][$time]["Rationale"]
         }
