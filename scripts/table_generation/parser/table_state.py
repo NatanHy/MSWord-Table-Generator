@@ -21,6 +21,7 @@ class TableState:
         self.arr : List[List[Text]] = [[Text()]]
         self.force_cutoffs = []
         self.spans = []
+        self.format = ""
 
     def _expand(self):
         while self._cur_i >= self.rows:

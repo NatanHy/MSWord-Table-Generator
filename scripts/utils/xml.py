@@ -1,6 +1,24 @@
-from docx import Document
+import docx.document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+
+def clear_document(doc):
+    body = doc.element.body
+
+    # Save the last section definition if it exists
+    sectPr = None
+    for el in reversed(body):
+        if el.tag == qn('w:sectPr'):
+            sectPr = el
+            break
+
+    # Remove all children from the body
+    for el in list(body):
+        body.remove(el)
+
+    # Re-append the final section definition
+    if sectPr is not None:
+        body.append(sectPr)
 
 def insert_multilevel_table_caption(paragraph, table_text):
     """

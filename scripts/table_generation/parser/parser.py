@@ -36,7 +36,7 @@ index_access: ("[" expression "]")+
 // -------------------
 quoted_string: ESCAPED_STRING
 var: "$" CNAME
-builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE | FORCE_CUTOFF | DESCRIPTION "(" term ")" | STYLE "(" term ")" | SPAN "(" term "," INT ")"
+builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE | FORCE_CUTOFF | DESCRIPTION "(" term ")" | STYLE "(" term ")" | FORMAT "(" term ")" | SPAN "(" term "," INT ")"
 
 TIME_PERIOD : "!time_period"
 INFLUENCE : "!influence"
@@ -46,6 +46,7 @@ DESCRIPTION : "!description"
 FORCE_CUTOFF : "!force_cutoff"
 SPAN : "!span"
 STYLE : "!style"
+FORMAT : "!format"
 
 %import common.CNAME
 %import common.ESCAPED_STRING
@@ -147,6 +148,9 @@ class TableExecutor(Transformer):
                 if is_static:
                     return self.variable_names[arg] #type: ignore
                 return lambda: self.variable_names[self._resolve(arg)] #type: ignore
+            case "!format":
+                arg = self._resolve(args[0])
+                self.table_state.format = arg #type: ignore
             case "!style":
                 def exec():
                     arg = self._resolve(args[0])

@@ -1,13 +1,12 @@
 import pandas as pd
 from typing import Iterable
-from config.document_config import DSL_FILE_PATH
+from config import DSL_FILE_PATH
 from table_generation.table_generator import generate_table_in_document
 from table_generation.table import TableCollection
 import time, queue, sys, threading
 from utils.redirect_manager import redirect_stdout_to
 from utils.xls_parsing import parse_components, parse_variables
-from utils.formatting import format_document
-from docx import Document
+from utils.formatting import copy_document_styles
 
 class AsyncTableGenerator:
     """
@@ -67,9 +66,7 @@ class AsyncTableGenerator:
         successful = 0
         unsuccessful = 0
 
-        # Create document for tables and apply document-wide configuration
-        word_document = Document()
-        format_document(word_document) 
+        word_document = copy_document_styles("C:/Users/natih/OneDrive/Desktop/internal processes/2078675 - Fuel and canister process report, FSAR version_20250519.docx")
 
         for component in components:
             # Abort generation if stop flag is set

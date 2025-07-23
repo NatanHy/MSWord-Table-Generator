@@ -29,6 +29,6 @@ if __name__ == "__main__":
     generator = AsyncTableGenerator(table_queue)
     generator.generate_tables([xls_path])
 
-    while generator.is_running():
-        poll_table_queue(output_dir)
+    while not generator.is_done():
         sleep(0.1)
+    poll_table_queue(output_dir)

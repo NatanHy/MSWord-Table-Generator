@@ -1,14 +1,27 @@
 from typing import Any
-from docx.table import _Cell
-from docx.shared import Cm, Pt
+from docx import Document
+from docx.shared import Cm, Pt # Pt import needed so it can be used by the eval when applpying styling
 import docx.document
-from table_generation.fixed_table import FixedTable
 from config.document_config import * # Constants
-from utils.xml import insert_multilevel_table_caption
+from utils.xml import insert_multilevel_table_caption, clear_document
+from typing import TYPE_CHECKING
+from docx.table import _Cell
+if TYPE_CHECKING:
+    from table_generation.fixed_table import FixedTable
+    from table_generation import Component
 
-def add_table_heading(doc : docx.document.Document, component_name):
-    caption = doc.add_paragraph("")
-    insert_multilevel_table_caption(caption, component_name)
+def copy_document_styles(path) -> docx.document.Document:
+    """
+    Copies the formatting and styles from an existing document and returns a blank document.
+    """
+    template = Document(path)
+    clear_document(template)
+    return template
+
+def add_table_heading(doc : docx.document.Document, component : 'Component'):
+    caption = doc.add_paragraph("", style="TabellRubrik")
+    table_text = f"Direct dependencies between the process “{component.name}” and the defined {component.system_component} variables and a short note on the handling in the [TODO]."
+    insert_multilevel_table_caption(caption, table_text)
 
 def format_document(doc : docx.document.Document): 
     sections = doc.sections
@@ -17,8 +30,8 @@ def format_document(doc : docx.document.Document):
         section.left_margin = Cm(LEFT_MARGIN)
         section.right_margin = Cm(RIGHT_MARGIN)
 
-def format_table(table : FixedTable):
-    table._table.style = TABLE_STYLE
+def format_table(table : 'FixedTable', format : str):
+    _apply_attributes(table, format)
 
 def format_raw_value(val : Any) -> str:
     if val is None:
@@ -35,9 +48,9 @@ def style(cell : _Cell, style : str):
     paragraphs = cell.paragraphs
     for paragraph in paragraphs:
         for run in paragraph.runs:
-            _apply_font_attributes(run.font, style)
+            _apply_attributes(run.font, style)
 
-def _apply_font_attributes(font, attr_string):
+def _apply_attributes(font, attr_string):
     pairs = attr_string.split(',')
     for pair in pairs:
         if not pair.strip():

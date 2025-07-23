@@ -14,7 +14,7 @@ def _get_col_sequences(table : FixedTable, col : int, force_cutoffs) -> List[Tup
     seqs = []
 
     # Iterate over rows
-    while cur < table.rows:
+    while cur < table.num_rows:
         cell = table.cell(cur, col)
 
         # Found a row with different text, or a forced cutoff
@@ -38,7 +38,7 @@ def merge_table_rows(table : FixedTable, force_cutoffs=[]):
     """
     Merge cells with identical text in consecutive rows.
     """
-    for col in range(table.cols):
+    for col in range(table.num_cols):
         seqs = _get_col_sequences(table, col, force_cutoffs)
         for start_cell, end_cell in seqs:
             text_before_merge = start_cell.text
@@ -62,7 +62,7 @@ def generate_table_in_document(
     parser.parse(code)
     table_state = parser.execute(info, variable_names)
 
-    add_table_heading(word_document, component.id)
+    add_table_heading(word_document, component)
     # Using fixed table class since the table shape is known after execution
     table = FixedTable(word_document, table_state.rows, table_state.cols)
 
@@ -90,4 +90,4 @@ def generate_table_in_document(
             style(cell, text_obj.style)
 
     # Apply table-wide configuration
-    format_table(table)
+    format_table(table, table_state.format)
