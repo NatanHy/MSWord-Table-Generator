@@ -1,7 +1,7 @@
 import sys
 from table_generation.async_table_generator import AsyncTableGenerator
 import queue
-from table_generation.table import Table
+from table_generation.table import TableCollection
 from time import sleep
 
 def poll_table_queue(output_dir):
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     except:
         raise ValueError("Output directory not specified.")
     
-    table_queue : queue.Queue[Table] = queue.Queue()
+    table_queue : queue.Queue[TableCollection] = queue.Queue()
     generator = AsyncTableGenerator(table_queue)
     generator.generate_tables([xls_path])
 

@@ -1,10 +1,14 @@
-from typing import Any, Dict
+from typing import Any
 from docx.table import _Cell
 from docx.shared import Cm, Pt
 import docx.document
 from table_generation.fixed_table import FixedTable
 from config.document_config import * # Constants
-import ast
+from utils.xml import insert_multilevel_table_caption
+
+def add_table_heading(doc : docx.document.Document, component_name):
+    caption = doc.add_paragraph("")
+    insert_multilevel_table_caption(caption, component_name)
 
 def format_document(doc : docx.document.Document): 
     sections = doc.sections

@@ -3,7 +3,7 @@ from tkinterdnd2 import TkinterDnD, DND_ALL
 import customtkinter as ctk
 from gui.file_item import FileItem
 from gui.pop_up_window import PopUpWindow
-from table_generation.table import Table
+from table_generation.table import TableCollection
 from gui.text_box_redirect import TextboxRedirector
 from table_generation.async_table_generator import AsyncTableGenerator
 from utils.redirect_manager import redirect_stdout_to
@@ -22,7 +22,7 @@ original_stdout = sys.stdout
 # Store chosen files
 selected_file_paths = set()
 file_items = []
-recieved_tables : List[Table] = []
+recieved_tables : List[TableCollection] = []
 
 # Store frames to hide/show one at a time
 frames = []

@@ -69,8 +69,8 @@ class Parser():
         self._cached[code] = tree
         self.tree = tree
 
-    def execute(self, info : ComponentInfo, variable_descriptions : Dict[str, str]) -> TableState:
-        executor = TableExecutor(info, variable_descriptions)
+    def execute(self, info : ComponentInfo, variable_names : Dict[str, str]) -> TableState:
+        executor = TableExecutor(info, variable_names)
 
         if self.tree is not None:
             executor.transform(self.tree)
@@ -80,10 +80,10 @@ class Parser():
         return executor.table_state
     
 class TableExecutor(Transformer):
-    def __init__(self, info : ComponentInfo, variable_descriptions : Dict[str, str]):
+    def __init__(self, info : ComponentInfo, variable_names : Dict[str, str]):
         self.info = info
         self.vars = {}
-        self.variable_descriptions = variable_descriptions
+        self.variable_names = variable_names
         self.style = ""
         self.table_state = TableState()
 
@@ -145,8 +145,8 @@ class TableExecutor(Transformer):
             case "!description":
                 arg, is_static = self._static_resolve(args[0])
                 if is_static:
-                    return self.variable_descriptions[arg] #type: ignore
-                return lambda: self.variable_descriptions[self._resolve(arg)] #type: ignore
+                    return self.variable_names[arg] #type: ignore
+                return lambda: self.variable_names[self._resolve(arg)] #type: ignore
             case "!style":
                 def exec():
                     arg = self._resolve(args[0])

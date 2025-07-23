@@ -5,7 +5,7 @@ from typing import Tuple, Dict, List
 from docx import Document
 from docx.table import _Cell
 import docx.document
-from utils.formatting import format_raw_value, style, format_document, format_table
+from utils.formatting import format_raw_value, style, format_table, add_table_heading
 
 def _get_col_sequences(table : FixedTable, col : int, force_cutoffs) -> List[Tuple[_Cell, _Cell]]:
     start = 0
@@ -45,21 +45,24 @@ def merge_table_rows(table : FixedTable, force_cutoffs=[]):
             start_cell.merge(end_cell)
             start_cell.text = text_before_merge
 
-def generate_document(component : Component, variable_descriptions : Dict[str, str], code : str, parser=Parser()) -> docx.document.Document:
+def generate_table_in_document(
+        word_document : docx.document.Document, 
+        component : Component, 
+        variable_names : Dict[str, str], 
+        code : str, 
+        parser=Parser()
+        ):
     """
     Generates a word document with a table specifying information for the given component. 
     """
 
-    word_document = Document()
-
-    # Apply document-wide configuration
-    format_document(word_document) 
     info = component.get_info()
 
     # Parse and execute table dsl file
     parser.parse(code)
-    table_state = parser.execute(info, variable_descriptions)
+    table_state = parser.execute(info, variable_names)
 
+    add_table_heading(word_document, component.id)
     # Using fixed table class since the table shape is known after execution
     table = FixedTable(word_document, table_state.rows, table_state.cols)
 
@@ -68,7 +71,6 @@ def generate_document(component : Component, variable_descriptions : Dict[str, s
         for j in range(table_state.cols):
             cell = table.cell(i, j)
             text_obj = table_state.arr[i][j]
-
             cell.text = format_raw_value(text_obj.text)
 
     for span in table_state.spans:
@@ -89,5 +91,3 @@ def generate_document(component : Component, variable_descriptions : Dict[str, s
 
     # Apply table-wide configuration
     format_table(table)
-
-    return word_document

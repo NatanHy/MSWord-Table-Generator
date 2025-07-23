@@ -1,20 +1,18 @@
 import pandas as pd
 from dataclasses import dataclass
-from openpyxl.utils import column_index_from_string
-from typing import Tuple, List, Any
+from typing import List
 from utils.formatting import format_raw_value
-from utils.xls_parsing import *
+from utils.dataframes import *
 from functools import cache
 
 VAR_COL = "C" # Column where variables are e.g. VarGe01
-VAR_ROW = 19  # Row of top-most variable (VarGe01)
-VIP_ROW = 17  # Row of time periods for "Variable influence on process"
-PIV_ROW = 34  # Row of time periods for "Process influence on variable"
 DESC_ROW = 18 # Row of Yes/No, Description, How, Rationale
+VAR_ROW = DESC_ROW + 1  # Row of top-most variable (VarGe01)
+VIP_ROW = 17  # Row of time periods for "Variable influence on process"
 
 # Top left cell of the input area (where the data is located)
 VAR_INF_COL = "F"
-VAR_INF_ROW = 56
+VAR_INF_ROW = VAR_ROW
 
 def var_to_offset(var : str) -> int:
     number = int(var[-2:])
@@ -22,11 +20,9 @@ def var_to_offset(var : str) -> int:
 
 class ComponentInfo:
     def __init__(self, id : str, xls : pd.ExcelFile):
+        from utils.xls_parsing import get_filtered_by_id
         self.df = xls.parse(f"{id}_INF", header=None) # Drop headers since excel file is not structured like a dataframe
-
-    @property
-    def variables(self) -> List[str]:
-        return self.indicies(0)
+        self.variables = get_filtered_by_id(xls, "Var").iloc[:, 0].values.tolist()
     
     @property
     def influences(self) -> List[str]:
@@ -38,7 +34,7 @@ class ComponentInfo:
 
     def num_time_periods(self) -> int:
         # -1 to not include "Influence present?" header as a time period
-        return len(self.time_periods) - 1
+        return len(self.time_periods)
 
     def num_variables(self) -> int:
         return len(self.variables)
@@ -49,14 +45,11 @@ class ComponentInfo:
         """
         match level:
             case 0:
-                # Extract column with just variable names as a flat list
-                return get_cell_range(VAR_COL, VAR_ROW, 1, 13, self.df).iloc[:, 0].tolist()
+                return self.variables
             case 1:
                 return ["Variable influence on process", "Process influence on variable"]
             case 2:
-                vip = get_non_null_values_from_row(self.df, VIP_ROW).to_list()
-                piv = get_non_null_values_from_row(self.df, PIV_ROW).to_list()
-                return vip if len(vip) > len(piv) else piv
+                return get_non_null_values_from_row(self.df, VIP_ROW).to_list()
             case 3:
                 values = get_non_null_values_from_row(self.df, DESC_ROW).to_list()[1:]
                 return list(set(values))
@@ -70,11 +63,13 @@ class ComponentInfo:
         j, i = excel_to_indx(VAR_INF_COL, VAR_INF_ROW)
 
         # Row offsets from "Variable influence on process" to "Process influence on variable"
-        piv_offset = 17
+        piv_offset = self.num_variables() + 4
+
+        num_time_periods = self.num_time_periods() 
 
         row_indices = [i - 2, i - 1, i + n, i + n + piv_offset]
-        col_range = set(range(j, j + 14))
-        col_exclude = set([j + 2, j + 5, j + 8, j + 11])
+        col_range = set(range(j, j + 3 * num_time_periods + 2))
+        col_exclude = set([j + 2 + 3*i for i in range(num_time_periods)])
 
         # Extract rows from the DataFrame
         df = self.df.iloc[row_indices, list(col_range - col_exclude)]
@@ -119,11 +114,8 @@ class ComponentInfo:
         if l3 not in self.indicies(3):
             raise ValueError(f"Invalid level 3 index {l3}, valid values are {self.indicies(3)}")
 
-        try:
-            df = make_first_row_headers(l2_df)
-            return df[l3]
-        except:
-            raise ValueError(f"Invalid level 3 index {l3}, valid values are {self.indicies(3)}")
+        df = make_first_row_headers(l2_df)
+        return df[l3]
 
     def get_value(self, l0, l1, l2, l3) -> str:
         """
@@ -142,7 +134,7 @@ class Component:
     xls : pd.ExcelFile
     id : str
     name : str
-    description : str
+    system_component : str
 
     def get_info(self) -> ComponentInfo:
         info = ComponentInfo(self.id, self.xls)

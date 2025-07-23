@@ -1,11 +1,13 @@
 import pandas as pd
 from typing import Iterable
 from config.document_config import DSL_FILE_PATH
-from table_generation.table_generator import generate_document
-from table_generation.table import Table
+from table_generation.table_generator import generate_table_in_document
+from table_generation.table import TableCollection
 import time, queue, sys, threading
 from utils.redirect_manager import redirect_stdout_to
 from utils.xls_parsing import parse_components, parse_variables
+from utils.formatting import format_document
+from docx import Document
 
 class AsyncTableGenerator:
     """
@@ -56,7 +58,7 @@ class AsyncTableGenerator:
         xls = pd.ExcelFile(xls_path)
 
         components = parse_components(xls)
-        variable_descriptions = parse_variables(xls)
+        variable_names = parse_variables(xls)
 
         print("Done.")
         print("Generating Word tables...")
@@ -65,26 +67,30 @@ class AsyncTableGenerator:
         successful = 0
         unsuccessful = 0
 
+        # Create document for tables and apply document-wide configuration
+        word_document = Document()
+        format_document(word_document) 
+
         for component in components:
             # Abort generation if stop flag is set
             if self.stop_event.is_set():
                 print("Operation terminated.")
                 return
 
-            success = self._generate_table(component, variable_descriptions, xls_path)
+            success = self._generate_table(word_document, component, variable_names)
             if success:
                 successful += 1
             else:
                 unsuccessful += 1
 
+        self.queue.put(TableCollection(word_document, xls_path))
         print(f"Operation completed. Generated {successful} table(s). Success {successful} | Fail {unsuccessful}")
 
-    def _generate_table(self, component, variable_descriptions, xls_path) -> bool:
+    def _generate_table(self, word_document, component, variable_names) -> bool:
         # Try generating word document and add it to the queue
         try:
             start = time.time()
-            document = generate_document(component, variable_descriptions, self._code)
-            self.queue.put(Table(document, xls_path, component.id))
+            generate_table_in_document(word_document, component, variable_names, self._code)
             end = time.time()
             print(f"    Generated table for {component.id} : Success | {end - start:.2f}s")
             return True
