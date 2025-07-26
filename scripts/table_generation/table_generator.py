@@ -6,6 +6,7 @@ from docx import Document
 from docx.table import _Cell
 import docx.document
 from utils.formatting import format_raw_value, style, format_table, add_table_heading
+import time
 
 def _get_col_sequences(table : FixedTable, col : int, force_cutoffs) -> List[Tuple[_Cell, _Cell]]:
     start = 0
@@ -80,7 +81,7 @@ def generate_table_in_document(
         cell1.text = span.text
 
     merge_table_rows(table, force_cutoffs=table_state.force_cutoffs)
-    
+
     # Styling needs to be done after mergin
     for i in range(table_state.rows):
         for j in range(table_state.cols):

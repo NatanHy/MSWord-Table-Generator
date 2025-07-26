@@ -1,5 +1,4 @@
 from docx.table import _Cell, Table
-from docx.shared import Cm
 from docx.document import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -18,16 +17,17 @@ class FixedTable(Table):
         self.document = document
         self.num_rows = rows
         self.num_cols = cols
+        self._cached_cells = self._cells
 
     def cell(self, row_idx, col_idx) -> _Cell:
         indx = row_idx * self.num_cols + col_idx
-        return self._cells[indx]
+        return self._cached_cells[indx]
     
     @property
     def width(self):
         # Read preferred width from XML if it exists
 
-        tblW = self._tbl.tblPr.find(qn('w:tblW'))
+        tblW = self._tbl.tblPr.find(qn('w:tblW')) #type: ignore
         if tblW is not None:
             # Return in inches (1 inch = 1440 twips)
             return int(tblW.get(qn('w:w'))) / 1440
@@ -40,7 +40,7 @@ class FixedTable(Table):
         tblPr = self._tbl.tblPr
 
         # Remove existing <w:tblW> if any
-        existing = tblPr.find(qn('w:tblW'))
+        existing = tblPr.find(qn('w:tblW')) #type: ignore
         if existing is not None:
             tblPr.remove(existing)
 

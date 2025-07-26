@@ -1,7 +1,17 @@
 import pandas as pd
+import openpyxl
 from typing import List, Dict
 from table_generation import Component
 from utils.dataframes import make_first_row_headers
+from utils.caching import cache_on_attr
+
+def get_description(wb : openpyxl.Workbook, component_id : str) -> str:
+    ws = wb[component_id]
+    return ws["C14"].value
+
+def set_description(wb : openpyxl.Workbook, component_id : str, description : str):
+    ws = wb[component_id]
+    ws["C14"] = description
 
 def get_filtered_by_id(xls : pd.ExcelFile, prefix="") -> pd.DataFrame:
     # Get main sheet
@@ -13,12 +23,17 @@ def get_filtered_by_id(xls : pd.ExcelFile, prefix="") -> pd.DataFrame:
     df_skipped = df[offset:]
 
     # Filter SKB FEP ID, FEP Name and System Component columns
-    df_filtered = make_first_row_headers(df_skipped)[["SKB FEP ID", "FEP Name", "System Component"]]
+    df_filtered = make_first_row_headers(df_skipped)[["SKB FEP ID", "FEP Name", "System Component", "Description"]]
     var_prefix = df_filtered["SKB FEP ID"].dropna().iloc[0] # Prefix like Ge, Bio, C etc.
 
     # Filter variables like Ge01 or Bio01 etc.
     filtered_by_id = df_filtered[df_filtered["SKB FEP ID"].str.match(rf"{prefix}{var_prefix}[0-9]+", na=False)]
     return filtered_by_id
+
+
+@cache_on_attr('io')
+def parse_components_cached(xls_file : pd.ExcelFile) -> List[Component]:
+    return parse_components(xls_file)
 
 def parse_components(xls : pd.ExcelFile) -> List[Component]:
     """

@@ -8,7 +8,7 @@ from gui.text_box_redirect import TextboxRedirector
 from table_generation.async_table_generator import AsyncTableGenerator
 from utils.redirect_manager import redirect_stdout_to
 from PIL import Image
-from typing import List
+from typing import List, Iterable
 import os, sys, platform, queue
 
 ASPECT_RATIO = 9 / 16
@@ -51,7 +51,7 @@ def hide_ui_element(elm):
 def remove_file_item(file_item : FileItem):
     selected_file_paths.remove(file_item.file_path)
 
-def add_files(paths : List[str]):
+def add_files(paths : Iterable[str]):
     wrong_files = []
     for path in paths:
         if path not in selected_file_paths:
@@ -79,7 +79,7 @@ def drag_and_drop_files(event):
 def add_more_files():
     file_paths = ctk.filedialog.askopenfilenames()
     if file_paths:
-        add_files(file_paths)
+        add_files(file_paths) 
 
 def select_files():
     add_more_files()
