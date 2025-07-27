@@ -195,4 +195,5 @@ cython_debug/
 
 tempCodeRunnerFile.py
 files/**
+test
 test.py

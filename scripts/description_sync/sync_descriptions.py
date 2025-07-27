@@ -4,11 +4,13 @@ from .get_descriptions import get_descriptions, HeadingTree
 from typing import List
 from table_generation import Component
 from utils.xls_parsing import parse_components_cached, get_description, set_description
+from utils.files import create_backup
 from rapidfuzz import process, fuzz
 from docx import Document
 import re
+from abc import ABC, abstractmethod
 
-class WordDescription:
+class _WordDescription:
     def __init__(self, node : HeadingTree):
         self.node = node
         self.component_name, self.process_type = self._get_desc_type()
@@ -28,88 +30,112 @@ class WordDescription:
             if component_name is None:
                 component_name = node.heading
         return component_name, process_type
-
-def sync_descriptions(description : WordDescription, component : Component, wb : openpyxl.Workbook):
-    paragraph = description.description_paragraph()
-
-    word_description = paragraph.text
-    excel_description = get_description(wb, component.id)
-
-    if len(word_description) > len(excel_description):
-        set_description(wb, component.id, word_description)
-    elif len(excel_description) > len(word_description):
-        paragraph.text = excel_description
-
-def find_best_component_match(description : WordDescription, components : List[Component]):
-    target = description.component_name
-    choices = [comp.name for comp in components] # Extract names of components
-
-    best_match = process.extractOne(
-        target,
-        choices,
-        scorer=fuzz.ratio
-    )
-
-    return components[best_match[-1]] # best_match[-1] is index of best match in choices
-
-def parse_excel_cached(xls_path : str) -> pd.ExcelFile:
-    global xls_files
-    if xls_path in xls_files:
-        return xls_files[xls_path]
     
-    f = pd.ExcelFile(xls_path)
-    xls_files[xls_path] = f
-    return f
+class _FileManager(ABC):
+    def __init__(self, file_path : str):
+        self.file_path = file_path
 
-def parse_workbook_cached(xls_path : str) -> openpyxl.Workbook:
-    global wbs
+    @abstractmethod
+    def save(self):
+        pass
 
-    if xls_path in wbs:
-        return wbs[xls_path]
-    
-    wb = openpyxl.load_workbook(xls_path)
-    wbs[xls_path] = wb
-    return wb
+    def backup_and_save(self):
+        create_backup(self.file_path)
+        self.save()
 
-def find_best_xls_match(description : WordDescription, xls_file_paths) -> str:
-    target = description.process_type
-    choices = [re.split(r"[ /\\]", xls_path)[-1] for xls_path in xls_file_paths] # Only use last part of file path
+class _ExcelFileManager(_FileManager):
+    def __init__(self, file_path : str):
+        super().__init__(file_path)
+        self.xls = pd.ExcelFile(file_path)
+        self.wb = openpyxl.load_workbook(file_path)
 
-    best_match = process.extractOne(
-        target,
-        choices,
-        scorer=fuzz.token_set_ratio
-    )
+    def save(self):
+        self.wb.save(self.file_path)
 
-    return xls_file_paths[best_match[-1]]
+class _WordFileManager(_FileManager):
+    def __init__(self, file_path : str):
+        super().__init__(file_path)
+        self.doc = Document(file_path)
 
-doc = Document("C:/Users/natih/OneDrive/Desktop/internal processes/2078675 - Fuel and canister process report, FSAR version_20250519.docx")
+    def save(self):
+        self.doc.save(self.file_path)
 
-xls_file_paths = [
-    "C:/Users/natih/OneDrive/Desktop/internal processes/2052141 - SFK FEP-katalog för FSAR - Fuel_v0.10.xlsx",
-    "C:/Users/natih/OneDrive/Desktop/internal processes/2052142 - SFK FEP-katalog för FSAR - Canister_v0.4.xlsx",
-]
+class DescriptionSyncer:
+    def __init__(self):
+        self._process_to_xls_file = {}
+        self._xls_managers = {}
+        self._word_manager = None
 
-xls_files = {}
-wbs = {}
+    def sync_descriptions(self, doc_path : str, xls_file_paths : List[str]):
+        self._word_manager = _WordFileManager(doc_path)
 
-for desc in get_descriptions(doc):
-    description = WordDescription(desc)
+        for desc in get_descriptions(self._word_manager.doc):
+            description = _WordDescription(desc)
 
-    print(f"Matching:  {description.process_type} - {description.component_name}:")
+            xls_path = self._find_best_xls_match(description, xls_file_paths)
+            xls_manager = self._parse_excel(xls_path)
 
-    xls_path = find_best_xls_match(description, xls_file_paths)
+            components = parse_components_cached(xls_manager.xls)
+            best_match, similarity = self._find_best_component_match(description, components)
 
-    # Get a pandas ExcelFile for logic and openpyxl Workbook for writing
-    xls = parse_excel_cached(xls_path)
-    wb = parse_workbook_cached(xls_path)
+            if similarity >= 80:
+                self._sync_descriptions(description, best_match, xls_manager.wb)
 
-    components = parse_components_cached(xls)
-    best_match = find_best_component_match(description, components)
-    print(best_match.id)
+    def save_files(self):
+        if self._word_manager is not None:
+            self._word_manager.backup_and_save()
+        for xls_manager in self._xls_managers.values():
+            xls_manager.backup_and_save()
 
-    sync_descriptions(description, best_match, wb)
+    def _sync_descriptions(self, description : _WordDescription, component : Component, wb : openpyxl.Workbook):
+        paragraph = description.description_paragraph()
 
-for i, wb in enumerate(wbs.values()):  
-    wb.save(f"modified{i}.xlsx")
-doc.save("modified.docx")
+        word_description = paragraph.text
+        excel_description = get_description(wb, component.id)
+
+        if len(word_description) > len(excel_description):
+            set_description(wb, component.id, word_description)
+        elif len(excel_description) > len(word_description):
+            paragraph.text = excel_description
+
+    def _find_best_component_match(self, description : _WordDescription, components : List[Component]):
+        target = description.component_name
+        choices = [comp.name for comp in components] # Extract names of components
+
+        best_match = process.extractOne(
+            target,
+            choices,
+            scorer=fuzz.ratio
+        )
+
+        _, similarity, index = best_match
+
+        return components[index], similarity
+
+    def _parse_excel(self, xls_path : str) -> _ExcelFileManager:
+        if xls_path in self._xls_managers:
+            return self._xls_managers[xls_path]
+        
+        xls_manager = _ExcelFileManager(xls_path)
+        self._xls_managers[xls_path] = xls_manager
+        return xls_manager
+
+    def _find_best_xls_match(self, description : _WordDescription, xls_file_paths) -> str:
+        target = description.process_type
+
+        # If target has already been seen, return cached value
+        if target in self._process_to_xls_file:
+            return self._process_to_xls_file[target]
+
+        choices = [re.split(r"[ /\\]", xls_path)[-1] for xls_path in xls_file_paths] # Only use last part of file path
+
+        best_match = process.extractOne(
+            target,
+            choices,
+            scorer=fuzz.token_set_ratio
+        )
+
+        # Cache and return
+        best_matching_file = xls_file_paths[best_match[-1]]
+        self._process_to_xls_file[target] = best_matching_file
+        return best_matching_file
