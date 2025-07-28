@@ -18,6 +18,16 @@ def var_to_offset(var : str) -> int:
     number = int(var[-2:])
     return number - 1
 
+@dataclass
+class Component:
+    xls : pd.ExcelFile
+    id : str
+    name : str
+    system_component : str
+
+    def get_info(self) -> 'ComponentInfo':
+        return ComponentInfo(self.id, self.xls)
+
 class ComponentInfo:
     def __init__(self, id : str, xls : pd.ExcelFile):
         from utils.xls_parsing import get_filtered_by_id
@@ -128,15 +138,3 @@ class ComponentInfo:
         """
         df = self._get_l3_df(l0, l1, l2, l3)
         return format_raw_value(df.iat[0])
-
-@dataclass
-class Component:
-    xls : pd.ExcelFile
-    id : str
-    name : str
-    system_component : str
-
-    def get_info(self) -> ComponentInfo:
-        info = ComponentInfo(self.id, self.xls)
-
-        return info

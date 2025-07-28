@@ -13,6 +13,17 @@ def set_description(wb : openpyxl.Workbook, component_id : str, description : st
     ws = wb[component_id]
     ws["C14"] = description
 
+def set_component_name(wb : openpyxl.Workbook, component : Component, text : str):
+    ws = wb["PSAR SFK FEP list"]
+
+    # Loop through column B to find row of the component
+    for i, row in enumerate(ws.iter_rows(min_row=2, min_col=2, max_col=2)):
+        cell = row[0]
+        if cell.value == component.id:
+            # Set component name in column C of the same row
+            ws[f"C{i}"] = text  
+            break
+
 def get_filtered_by_id(xls : pd.ExcelFile, prefix="") -> pd.DataFrame:
     # Get main sheet
     df = xls.parse("PSAR SFK FEP list", header=None)

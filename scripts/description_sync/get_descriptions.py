@@ -5,14 +5,14 @@ from typing import List, Iterator
 import re
 
 class HeadingTree:
-    def __init__(self, heading : str, paragraphs : List[Paragraph] | None = None):
+    def __init__(self, heading : Paragraph | None, paragraphs : List[Paragraph] | None = None):
         self.heading = heading
         if paragraphs is None:
             self.paragraphs = []
         else:
             self.paragraphs = paragraphs
         self.children = []
-        self.parent = None
+        self.parent : HeadingTree | None = None
 
     def add_paragraph(self, paragraph : Paragraph):
         self.paragraphs.append(paragraph)
@@ -27,7 +27,7 @@ def get_heading_level(style_name: str) -> int | None:
     return int(match.group(1)) if match else None
 
 def build_heading_tree(doc: docx.document.Document) -> HeadingTree:
-    root = HeadingTree("Document Root")
+    root = HeadingTree(None)
     stack = [(0, root)]  # Each item is a tuple (level, node)
 
     for para in doc.paragraphs:
@@ -35,7 +35,7 @@ def build_heading_tree(doc: docx.document.Document) -> HeadingTree:
 
         if level is not None:
             # Create new node
-            new_node = HeadingTree(para.text)
+            new_node = HeadingTree(para)
 
             # Find parent in the stack (last one with lower level)
             while stack and stack[-1][0] >= level:
@@ -52,7 +52,7 @@ def build_heading_tree(doc: docx.document.Document) -> HeadingTree:
     return root
 
 def filter_descriptions(node: HeadingTree) -> Iterator[HeadingTree]:
-    if node.heading == "Description":
+    if node.heading is not None and node.heading.text == "Description":
         yield node
     for child in node.children:
         yield from filter_descriptions(child)
