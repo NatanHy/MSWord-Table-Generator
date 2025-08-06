@@ -1,9 +1,14 @@
 import pandas as pd
 import openpyxl
-from typing import List, Dict
+from typing import List, Dict, Iterable
 from table_generation import Component
 from utils.dataframes import make_first_row_headers
 from utils.caching import cache_on_attr
+from functools import cache
+
+@cache
+def parse_excel_cached(xls_path : str) -> pd.ExcelFile:
+    return pd.ExcelFile(xls_path)
 
 def get_description(wb : openpyxl.Workbook, component_id : str) -> str:
     ws = wb[component_id]
@@ -41,10 +46,13 @@ def get_filtered_by_id(xls : pd.ExcelFile, prefix="") -> pd.DataFrame:
     filtered_by_id = df_filtered[df_filtered["SKB FEP ID"].str.match(rf"{prefix}{var_prefix}[0-9]+", na=False)]
     return filtered_by_id
 
-
 @cache_on_attr('io')
 def parse_components_cached(xls_file : pd.ExcelFile) -> List[Component]:
     return parse_components(xls_file)
+
+@cache_on_attr('io')
+def parse_variables_cached(xls_file : pd.ExcelFile) -> Dict[str, str]:
+    return parse_variables(xls_file)
 
 def parse_components(xls : pd.ExcelFile) -> List[Component]:
     """
@@ -88,3 +96,13 @@ def parse_variables(xls : pd.ExcelFile) -> Dict[str, str]:
         variables[id] = name
 
     return variables
+
+def get_xls_from_process_type(process_type : str, xls_files : Iterable[str]) -> str:
+    #TODO
+    match process_type.strip():
+        case "Fuel processes":
+            return "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052141 - SFK FEP-katalog för FSAR - Fuel_v0.10.xlsx"
+        case "Canister processes":
+            return "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052142 - SFK FEP-katalog för FSAR - Canister_v0.4.xlsx"
+        case e:
+            raise ValueError(f"Unknown process: '{e}'")

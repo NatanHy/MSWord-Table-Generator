@@ -51,7 +51,8 @@ def generate_table_in_document(
         component : Component, 
         variable_names : Dict[str, str], 
         code : str, 
-        parser=Parser()
+        parser=Parser(),
+        insert_after=None
         ):
     """
     Generates a word document with a table specifying information for the given component. 
@@ -65,7 +66,7 @@ def generate_table_in_document(
 
     add_table_heading(word_document, component)
     # Using fixed table class since the table shape is known after execution
-    table = FixedTable(word_document, table_state.rows, table_state.cols)
+    table = FixedTable(word_document, table_state.rows, table_state.cols, insert_after=insert_after)
 
     # Text needs to be added before merging
     for i in range(table_state.rows):

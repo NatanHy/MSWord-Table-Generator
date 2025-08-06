@@ -2,14 +2,20 @@ from docx.table import _Cell, Table
 from docx.document import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from utils.xml import insert_table_after
 
 class FixedTable(Table):
     """
     Class for creating a fixed-size table. Caches cells making the `cell()` 
     function much faster than in the regular `docx.table.Table` class.
     """
-    def __init__(self, document : Document, rows, cols, style=None):
-        table = document.add_table(rows, cols, style=style)
+    def __init__(self, document : Document, rows, cols, style=None, insert_after=None):
+        if insert_after is not None:
+            table = insert_table_after(rows, cols, insert_after)
+        else:
+            table = document.add_table(rows, cols)
+        
+        table.style = style
         self._tbl = table._tbl
         self._parent = table._parent
         self._element = table._element

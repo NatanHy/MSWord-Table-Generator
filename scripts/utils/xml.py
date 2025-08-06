@@ -1,6 +1,41 @@
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.oxml.table import CT_Tbl
 from docx.text.paragraph import Paragraph
+from docx.table import Table
+from typing import cast
+
+def insert_table_after(rows : int, cols : int, insert_after) -> Table:
+    # Create the table (in memory, detached)
+    tbl = OxmlElement('w:tbl')
+
+    # Add tblPr (optional, for compatibility)
+    tblPr = OxmlElement('w:tblPr')
+    tbl.append(tblPr)
+
+    # Add table grid (optional)
+    tblGrid = OxmlElement('w:tblGrid')
+    for _ in range(cols):
+        gridCol = OxmlElement('w:gridCol')
+        tblGrid.append(gridCol)
+    tbl.append(tblGrid)
+
+    # Add rows
+    for _ in range(rows):
+        tr = OxmlElement('w:tr')
+        for _ in range(cols):
+            tc = OxmlElement('w:tc')
+            p = OxmlElement('w:p')
+            tc.append(p)
+            tr.append(tc)
+        tbl.append(tr)
+
+    # Insert into document
+    parent = insert_after._element.getparent()
+    index = parent.index(insert_after._element)
+    parent.insert(index + 1, tbl)
+    tbl = cast(CT_Tbl, tbl)
+    return Table(tbl, insert_after._parent)
 
 def insert_paragraph_after(paragraph : Paragraph, text=None, style=None):
     """Insert a new paragraph after the given paragraph."""

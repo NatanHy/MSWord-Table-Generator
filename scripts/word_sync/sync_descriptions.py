@@ -1,13 +1,18 @@
 import openpyxl
-from .get_descriptions import get_descriptions, HeadingTree
-from typing import List, Tuple
+import docx.document
+import re
+from .heading_tree import HeadingTree, build_heading_tree
+from typing import List, Iterator
 from table_generation import Component
-from utils.xls_parsing import parse_components_cached, get_description, set_description, set_component_name
+from utils.xls_parsing import parse_components_cached, get_description, set_description, set_component_name, get_xls_from_process_type
 from utils.xml import insert_paragraph_after
 from rapidfuzz import process, fuzz
-import re
 from .file_manager import WordFileManager, ExcelFileManager
 from os import fspath
+
+def get_descriptions(doc : docx.document.Document) -> Iterator[HeadingTree]:
+    root = build_heading_tree(doc)
+    yield from root.filter(lambda node : node.heading is not None and node.heading.text == "Description")
 
 def similarity_to_rgb(score):
     t = score / 100
@@ -26,7 +31,8 @@ def colored_similarity_text(score):
 class _WordDescription:
     def __init__(self, node : HeadingTree):
         self.node = node
-        self.component_name, self.process_type = self._get_desc_type()
+        self.process_type = self.node.get_parent_heading_absolute(1).text # Top level heading is process type
+        self.component_name = self.node.get_parent_heading_relative(1).text # One step above is component name
 
     def description_paragraph(self):
         if len(self.node.paragraphs) > 0:
@@ -42,21 +48,6 @@ class _WordDescription:
         print(f"Changed {self.node.parent.heading.text} to {text}")
         self.node.parent.heading.text = text
 
-    def _get_desc_type(self):
-        node = self.node
-        component_name = ""
-        process_type = ""
-
-        while node.parent is not None:
-            if node.heading is None:
-                break
-            process_type = node.heading.text
-
-            node = node.parent
-            if component_name == "":
-                component_name = node.heading.text
-        return component_name, process_type
-
 class DescriptionSyncer:
     def __init__(self):
         self._process_to_xls_path = {}
@@ -69,7 +60,7 @@ class DescriptionSyncer:
         for desc in get_descriptions(self._word_manager.doc):
             description = _WordDescription(desc)
 
-            xls_path = self._find_best_xls_match(description, xls_file_paths)
+            xls_path = get_xls_from_process_type(description.process_type, xls_file_paths)
             if xls_path is None:
                 print(f"Skipping {description.process_type}")
                 continue # Skip iteration if no xls file is chosen
@@ -91,7 +82,7 @@ class DescriptionSyncer:
             xls_manager.backup_and_save()
 
     def _set_descriptions(self, description : _WordDescription, component : Component, wb : openpyxl.Workbook):
-        paragraph = description.description_paragraph()
+        paragraph = description.node.get_or_insert_paragraph(0)
 
         word_description = paragraph.text
         excel_description = get_description(wb, component.id)
@@ -130,26 +121,6 @@ class DescriptionSyncer:
         if int(similarity) == 100:
             return best_matching_component
         return self._handle_component_mismatch(description, best_matching_component, similarity)
-
-    def _find_best_xls_match(self, description : _WordDescription, xls_file_paths) -> str | None:
-        target = description.process_type
-
-        # If target has already been seen, don't re-compute
-        if target in self._process_to_xls_path:
-            return self._process_to_xls_path[target]
-
-        choices = [re.split(r"[ /\\]", xls_path)[-1] for xls_path in xls_file_paths] # Only use last part of file path
-        best_match = process.extractOne(
-            target,
-            choices,
-            scorer=fuzz.token_set_ratio
-        )
-
-        _, _, index = best_match
-
-        best_matching_path = xls_file_paths[index]
-        self._process_to_xls_path[target] = best_matching_path
-        return best_matching_path
 
     def _handle_component_mismatch(self, description : _WordDescription, component : Component, similarity) -> Component | None:
         sim_text = colored_similarity_text(similarity)
