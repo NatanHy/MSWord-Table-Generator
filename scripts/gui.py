@@ -120,6 +120,7 @@ def gen_tables(insert=False):
             doc_for_insertion = Document(doc_path_for_insertion)
             async_table_generator.generate_and_insert_tables(excel_file_handler.selected_file_paths, doc_for_insertion)
         else:
+            async_table_generator.template_file_path = empty_doc_file_handler.first_path
             async_table_generator.generate_tables(excel_file_handler.selected_file_paths)
     except:
         pass
@@ -215,9 +216,10 @@ if __name__ == "__main__":
     dnd_box = DnDBox(root, on_drop=excel_file_handler.drag_and_drop_files, on_select=excel_file_handler.select_files)
     dnd_box.frame.configure(
         width=round(RES_X * 0.8), 
-        height=round(RES_Y * 0.5),
-        border_color="#444",
-        border_width=1
+        height=round(RES_Y * 0.5)
+    )
+    dnd_box.select_button.configure(
+        text="Select Excel Files"
     )
     # Prevent the frame from resizing to fit its contents
     dnd_box.frame.pack_propagate(False)

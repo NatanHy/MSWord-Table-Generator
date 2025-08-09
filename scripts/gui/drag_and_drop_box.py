@@ -13,7 +13,11 @@ class DnDBox:
 
     def __init__(self, master, on_drop, on_select):
         self.master = master
-        self.frame = ctk.CTkFrame(master)
+        self.frame = ctk.CTkFrame(
+            master,
+            border_color="#444",
+            border_width=1
+            )
         self.frame.drop_target_register(DND_ALL)  # type: ignore
         self.frame.dnd_bind("<<Drop>>", on_drop) # type: ignore
 

@@ -37,7 +37,7 @@ class AsyncTableGenerator:
         """
         self.thread = None
         self.queue = queue
-        self._template_file_path = template_file_path
+        self.template_file_path = template_file_path
 
         if stdout_redirect is None:
             self.stdout_redirect = sys.stdout
@@ -108,8 +108,8 @@ class AsyncTableGenerator:
         successful = 0
         unsuccessful = 0
 
-        if self._template_file_path is not None:
-            word_document = copy_document_styles(self._template_file_path)
+        if self.template_file_path is not None:
+            word_document = copy_document_styles(self.template_file_path)
         else:
             word_document = Document()
 
