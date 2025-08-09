@@ -10,16 +10,19 @@ import time, queue, sys, threading
 from utils.redirect_manager import redirect_stdout_to
 from utils.xls_parsing import *
 from utils.formatting import copy_document_styles
-
+from docx.text.paragraph import Paragraph
+from docx.table import Table
+from typing import Union
+BlockItem = Union[Paragraph, Table]
 
 class _ComponentElement:
     """
-    Wrapper class to encapsulate a Component and the omxl element where this component should
+    Wrapper class to encapsulate a Component and the oxml element where this component should
     be placed in a word file.
     """
-    def __init__(self, component : Component, omxl_element):
+    def __init__(self, component : Component, block_item : BlockItem):
         self.component = component
-        self.omxl_element = omxl_element
+        self.block_item = block_item
 
 class AsyncTableGenerator:
     """
@@ -60,9 +63,16 @@ class AsyncTableGenerator:
 
             # Using context manager to redirect stdout
             with redirect_stdout_to(self.stdout_redirect):
+                print("Parsing word document...")
                 component_elements, variable_descriptions = self._parse_document(doc, xls_paths)
+                print("Done.")
+                print("Generating Word tables...")
                 for ce in component_elements:
-                    self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.omxl_element)
+                    if self.stop_event.is_set():
+                        print("Operation terminated.")
+                        return
+                    self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.block_item)
+                print("Done.")
 
         self.thread = threading.Thread(target=task)
         self.thread.start()
@@ -84,7 +94,7 @@ class AsyncTableGenerator:
         self.thread.start()
 
     def _process_file(self, xls_path: str):
-        print(f"Parsing {xls_path}")
+        print(f"Parsing {xls_path}...")
 
         xls = pd.ExcelFile(xls_path)
 
@@ -144,11 +154,15 @@ class AsyncTableGenerator:
         filtered_components = []
         for heading in headings:
             # process type used to find correct excel file
-            process_type = heading.get_parent_heading_absolute(1).text
+            process_type = heading.get_parent_heading_absolute(1).text #type: ignore
             # component name used to find correct component in excel file
-            component_name = heading.get_parent_heading_relative(1).text
+            component_name = heading.get_parent_heading_relative(1).text #type: ignore
 
-            xls_path = get_xls_from_process_type(process_type, xls_paths)
+            try:
+                xls_path = get_xls_from_process_type(process_type, xls_paths)
+            except ValueError as e:
+                print(e)
+                continue
             
             # Use cahced components
             if xls_path in parsed_components:
@@ -163,7 +177,8 @@ class AsyncTableGenerator:
             
             for c in components:
                 if c.name == component_name:
-                    component_element = _ComponentElement(c, heading.get_or_insert_paragraph(-1))
+                    para = heading.get_or_insert_paragraph(-1)
+                    component_element = _ComponentElement(c, para)
                     filtered_components.append(component_element)
                     break
         

@@ -136,7 +136,6 @@ class TableExecutor(Transformer):
     def builtin_function(self, token, *args):
         match token.value:
             case "!time_period":
-                print(self.info.time_periods)
                 return self.info.time_periods
             case "!influence":
                 return self.info.influences

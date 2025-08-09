@@ -4,6 +4,10 @@ from docx.oxml.table import CT_Tbl
 from docx.text.paragraph import Paragraph
 from docx.table import Table
 from typing import cast
+from docx.oxml import OxmlElement
+
+from typing import Union
+BlockItem = Union[Paragraph, Table]
 
 def insert_table_after(rows : int, cols : int, insert_after) -> Table:
     # Create the table (in memory, detached)
@@ -37,15 +41,25 @@ def insert_table_after(rows : int, cols : int, insert_after) -> Table:
     tbl = cast(CT_Tbl, tbl)
     return Table(tbl, insert_after._parent)
 
-def insert_paragraph_after(paragraph : Paragraph, text=None, style=None):
-    """Insert a new paragraph after the given paragraph."""
+def insert_paragraph_after(item : BlockItem, text=None, style=None):
+    """
+    Insert a new paragraph after the given block-level item (Paragraph or Table).
+    """
+    # Get the correct XML element
+    element = item._element
+
+    # Create and insert new paragraph XML
     new_p = OxmlElement("w:p")
-    paragraph._p.addnext(new_p)
-    new_para = Paragraph(new_p, paragraph._parent)
+    element.addnext(new_p)
+
+    # Wrap in Paragraph with correct parent
+    new_para = Paragraph(new_p, item._parent)
+
     if text:
         new_para.add_run(text)
     if style is not None:
         new_para.style = style
+
     return new_para
 
 def clear_document(doc):

@@ -3,9 +3,10 @@ from docx import Document
 from docx.shared import Cm, Pt # Pt import needed so it can be used by the eval when applpying styling
 import docx.document
 from config.document_config import * # Constants
-from utils.xml import insert_multilevel_table_caption, clear_document
+from utils.xml import insert_multilevel_table_caption, clear_document, insert_paragraph_after
 from typing import TYPE_CHECKING
 from docx.table import _Cell
+from docx.text.paragraph import Paragraph
 if TYPE_CHECKING:
     from table_generation.fixed_table import FixedTable
     from table_generation import Component
@@ -18,10 +19,20 @@ def copy_document_styles(path) -> docx.document.Document:
     clear_document(template)
     return template
 
-def add_table_heading(doc : docx.document.Document, component : 'Component'):
-    caption = doc.add_paragraph("", style="TabellRubrik")
+def add_table_heading(doc : docx.document.Document, component : 'Component', insert_after=None) -> Paragraph:
+    if TABLE_HEADING_STYLE in doc.styles:
+        styl = TABLE_HEADING_STYLE
+    else:
+        styl = None
+
+    if insert_after is None:
+        caption = doc.add_paragraph("", style=styl)
+    else:
+        caption = insert_paragraph_after(insert_after, text="", style=styl)
+
     table_text = f"Direct dependencies between the process “{component.name}” and the defined {component.system_component} variables and a short note on the handling in the [TODO]."
     insert_multilevel_table_caption(caption, table_text)
+    return caption
 
 def format_document(doc : docx.document.Document): 
     sections = doc.sections

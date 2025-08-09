@@ -101,8 +101,12 @@ def get_xls_from_process_type(process_type : str, xls_files : Iterable[str]) -> 
     #TODO
     match process_type.strip():
         case "Fuel processes":
-            return "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052141 - SFK FEP-katalog för FSAR - Fuel_v0.10.xlsx"
+            pth = "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052141 - SFK FEP-katalog för FSAR - Fuel_v0.10.xlsx"
         case "Canister processes":
-            return "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052142 - SFK FEP-katalog för FSAR - Canister_v0.4.xlsx"
+            pth = "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052142 - SFK FEP-katalog för FSAR - Canister_v0.4.xlsx"
         case e:
             raise ValueError(f"Unknown process: '{e}'")
+    if pth in xls_files:
+        return pth
+    else:
+        raise ValueError(f"Could not find excel file for process type: {process_type}")

@@ -64,7 +64,12 @@ def generate_table_in_document(
     parser.parse(code)
     table_state = parser.execute(info, variable_names)
 
-    add_table_heading(word_document, component)
+    heading_para = add_table_heading(word_document, component, insert_after=insert_after)
+
+    if insert_after is not None:
+        # If we are relying on `insert_after` for positioning, update it with the added heading
+        insert_after = heading_para
+
     # Using fixed table class since the table shape is known after execution
     table = FixedTable(word_document, table_state.rows, table_state.cols, insert_after=insert_after)
 
