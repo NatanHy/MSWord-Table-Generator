@@ -17,7 +17,6 @@ def get_descriptions(doc : docx.document.Document) -> Iterator[HeadingTree]:
 def similarity_to_rgb(score):
     t = score / 100
 
-    # Dark red (128, 0, 0) to bright green (0, 255, 0)
     r = int((1 - t) * 255)
     g = int(t * t * 255)
     b = 0
@@ -148,5 +147,3 @@ class DescriptionSyncer:
         component_file_path = fspath(component.xls)
         file_manager = self._parse_excel(component_file_path)
         set_component_name(file_manager.wb, component, text)
-
-

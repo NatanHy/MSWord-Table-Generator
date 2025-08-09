@@ -1,21 +1,16 @@
 from tkinter import TOP, LEFT, RIGHT
 import customtkinter as ctk
-from gui.file_item import FileItem
-from gui.pop_up_window import PopUpWindow
-from table_generation.table import TableCollection
-from gui.text_box_redirect import TextboxRedirector
-from table_generation.async_table_generator import AsyncTableGenerator
+from gui import Tk, DnDBox, CollapsibleFrame, SelectedFilesHandler, PopUpWindow, TextboxRedirector
+from utils.gui import *
 from utils.redirect_manager import redirect_stdout_to
+from tkinterdnd2 import DND_ALL
+from table_generation.table import TableCollection
+from table_generation.async_table_generator import AsyncTableGenerator
 from PIL import Image
-from typing import List, Iterable
 import os, sys, platform, queue
 from docx import Document
 import docx.document
-from tkinterdnd2 import TkinterDnD, DND_ALL
-from gui.drag_and_drop_box import DnDBox
-from customtkinter import ThemeManager
-from gui.collapsible_frame import CollapsibleFrame
-from gui.selected_files_handler import SelectedFilesHandler
+from typing import List
 
 ASPECT_RATIO = 9 / 16
 RES_X = 720
@@ -38,22 +33,7 @@ current_frame = 0
 table_queue = queue.Queue()
 async_table_generator = AsyncTableGenerator(table_queue)
 
-def disable_button(button): 
-    if button._state != "disabled":
-        button.configure(state="disabled", fg_color="#5a5a5a", text_color="gray80")
 
-def enable_button(button):
-    if button._state != "normal":
-        clr = ThemeManager.theme["CTkButton"]["fg_color"]
-        button.configure(state="normal", fg_color=clr, text_color="white")
-
-def display_ui_element(elm, **kwargs):
-    elm.pack(**kwargs)
-
-def hide_ui_element(elm):
-    elm.pack_forget()
-    elm.place_forget()
-    elm.grid_forget()
 
 def show_wrong_file_popup(file_handler : SelectedFilesHandler, file_paths : List[str]):
     popup_win = PopUpWindow(root, "Wrong file type", "Wrong file type.")
@@ -179,11 +159,6 @@ def show_save_confirmation(folder_path):
 
     confirm_win.set_left("Open Folder", open_folder)
     confirm_win.set_right("Ok", confirm_win.destroy)
-
-class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.TkdndVersion = TkinterDnD._require(self)
 
 if __name__ == "__main__":
     # File handlers
