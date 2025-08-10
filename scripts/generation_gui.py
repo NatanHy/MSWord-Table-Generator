@@ -3,6 +3,7 @@ import customtkinter as ctk
 from gui import Tk, DnDBox, CollapsibleFrame, SelectedFilesHandler, PopUpWindow, TextboxRedirector, OnHover
 from utils.gui import *
 from utils.redirect_manager import redirect_stdout_to
+from utils.files import create_backup
 from tkinterdnd2 import DND_ALL
 from table_generation.table import TableCollection
 from table_generation.async_table_generator import AsyncTableGenerator
@@ -125,6 +126,7 @@ def poll_table_queue():
 def save_tables():
     # If we are inserting into a word file, just save the file and return
     if doc_for_insertion is not None:
+        create_backup(doc_path_for_insertion)
         doc_for_insertion.save(doc_path_for_insertion)
         show_save_confirmation(os.path.dirname(doc_path_for_insertion))
         return

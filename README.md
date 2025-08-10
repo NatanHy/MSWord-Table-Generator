@@ -18,3 +18,6 @@ Example of correct heading layout (red text is not a part of the document)
 ### Step 3 - Save files
 
 When generating tables in an empty document, choose an output directory where the generated documents should be saved. When inserting into an existing document clicking the save button will save the changes in the document that was selected for insertion. 
+
+## Backups
+When inserting tables into an existing document, or when syncing files, the program will create backups for each file. The two most recent versions of each file will be saved. The backups also contain a time stamp in the filename, formatted as `<original-file-name><time-stamp>`. The backups are located in the `backups/` folder under the install path, and can also be opened from the GUI with the "Open backups folder" button in the top-right. 
