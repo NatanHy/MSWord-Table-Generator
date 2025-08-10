@@ -12,6 +12,9 @@ The tables can either be generated in an empty word document, or inserted into a
 
 **Inserting into document:** Inserting the tables into an existing document will parse the headings and only generate tables for those components that are represented in the document. The tables will be generated automatically assuming the structure of the headings are correct: The top level heading must match the process type described in **[TODO]**. All table will be generated under a heading _"Dependencies between processes and variables"_. The level of this heading does not matter, but the parent heading must match the FEP name in the excel files. Other headings are ignored. 
 
+![Example of correct heading layout](resources/heading_example.png)
+Example of correct heading layout (red text is not a part of the document)
+
 ### Step 3 - Save files
 
 When generating tables in an empty document, choose an output directory where the generated documents should be saved. When inserting into an existing document clicking the save button will save the changes in the document that was selected for insertion. 
