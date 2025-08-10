@@ -5,5 +5,6 @@ from .pop_up_window import PopUpWindow
 from .selected_files_handler import SelectedFilesHandler
 from .text_box_redirect import TextboxRedirector
 from .tk import Tk
+from .on_hover import OnHover
 
-__all__ = ["CollapsibleFrame", "DnDBox", "FileItem", "PopUpWindow", "SelectedFilesHandler", "TextboxRedirector", "Tk"]
+__all__ = ["CollapsibleFrame", "DnDBox", "FileItem", "PopUpWindow", "SelectedFilesHandler", "TextboxRedirector", "Tk", "OnHover"]

@@ -1,13 +1,13 @@
 from tkinter import TOP, LEFT, RIGHT
 import customtkinter as ctk
-from gui import Tk, DnDBox, CollapsibleFrame, SelectedFilesHandler, PopUpWindow, TextboxRedirector
+from gui import Tk, DnDBox, CollapsibleFrame, SelectedFilesHandler, PopUpWindow, TextboxRedirector, OnHover
 from utils.gui import *
 from utils.redirect_manager import redirect_stdout_to
 from tkinterdnd2 import DND_ALL
 from table_generation.table import TableCollection
 from table_generation.async_table_generator import AsyncTableGenerator
 from PIL import Image
-import os, sys, platform, queue
+import os, sys, queue
 from docx import Document
 import docx.document
 from typing import List
@@ -147,17 +147,11 @@ def save_tables():
 def show_save_confirmation(folder_path):
     confirm_win = PopUpWindow(root, "Save Complete", "✅ Tables saved successfully!")
 
-    def open_folder():
-        if platform.system() == "Windows":
-            os.startfile(folder_path)
-        elif platform.system() == "Darwin":  # macOS
-            os.system(f"open '{folder_path}'")
-        else:  # Linux
-            os.system(f"xdg-open '{folder_path}'")
-
+    def open_and_destroy():
+        open_folder(folder_path)
         confirm_win.destroy()
 
-    confirm_win.set_left("Open Folder", open_folder)
+    confirm_win.set_left("Open Folder", open_and_destroy)
     confirm_win.set_right("Ok", confirm_win.destroy)
 
 if __name__ == "__main__":
@@ -186,6 +180,8 @@ if __name__ == "__main__":
     #==================================================
     # Containers (frames) for the different pages
     #==================================================
+
+    header_frame = ctk.CTkFrame(root, fg_color="transparent")
 
     # Drag-and-drop box
     dnd_box = DnDBox(root, on_drop=excel_file_handler.drag_and_drop_files, on_select=excel_file_handler.select_files)
@@ -216,28 +212,48 @@ if __name__ == "__main__":
     # Defining UI elements and inner containers
     #==================================================
     
+    header_container = ctk.CTkFrame(header_frame, fg_color="transparent")
+
     # Header
     header_label = ctk.CTkLabel(
-        root, 
+        header_container, 
         text="Table Generator",
         font=("Segoe UI", 50, "bold")
     )
 
     sub_header_label = ctk.CTkLabel(
-        root, 
+        header_container, 
         text="Generate Word tables from excel data"
     )
 
     # Back button
     back_img = ctk.CTkImage(light_image=Image.open("resources/back_arrow_white.png"), size=(20, 20))
     back_button = ctk.CTkButton(
-        root, 
+        header_frame, 
         image=back_img,
         text="",
         command=back,
         width=30,
     )
     
+    # Backup button
+    white_image = Image.open("resources/back_up_white.png")
+    colored_image = color_filter(white_image, ThemeManager.theme["CTkButton"]["fg_color"])
+    backup_img = ctk.CTkImage(light_image=colored_image, size=(20, 20))
+    
+    backup_button = ctk.CTkButton(
+        header_frame, 
+        image=backup_img,
+        text="",
+        fg_color="transparent",
+        border_color=ThemeManager.theme["CTkButton"]["fg_color"],
+        border_width=1,
+        command=lambda: open_folder("backups"),
+        width=30,
+    )
+    # save object instance to stop python's garbage collector form deleting it
+    _hover = OnHover(backup_button, "Open backups folder")
+
     # File list container
     file_list_frame = ctk.CTkFrame(files_chosen_frame, width=round(RES_X * 0.8))
     excel_file_handler.add_ui(file_list_frame, height=0)
@@ -267,13 +283,6 @@ if __name__ == "__main__":
     # Containers for the two generation types
     empty_doc_frame = CollapsibleFrame(generate_settings_frame, title="Generate in empty document", fg_color="transparent")
     insert_doc_frame = CollapsibleFrame(generate_settings_frame, title="Insert into existing document", fg_color="transparent")
-
-    for container in [empty_doc_frame.content, insert_doc_frame.content]:
-        # (1, 1) has weight 0 since the generate buttons need to always be visible
-        container.grid_columnconfigure(0, weight=1) 
-        container.grid_columnconfigure(1, weight=0)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_rowconfigure(1, weight=0)
 
     empty_dnd_box = DnDBox(
         empty_doc_frame.content, 
@@ -339,8 +348,12 @@ if __name__ == "__main__":
     # Placing UI elements and inner containers
     #==================================================
 
-    header_label.pack(side=TOP)
-    sub_header_label.pack(side=TOP, pady=(0, 10))
+    header_frame.pack(fill="x")
+    header_container.pack(fill="both")
+
+    header_label.pack()
+    sub_header_label.pack()
+    backup_button.place(relx=1.0, anchor="ne", x=-10, y=10)
 
     # Frame 0
     FRAME_0_KW = {"side":TOP, "padx":10, "pady":10, "expand":True, "fill":"both"}
@@ -348,11 +361,11 @@ if __name__ == "__main__":
     dnd_box.pack_inner()
     
     # Frame 1
-    FRAME_1_KW = {"fill":"both", "expand":True, "padx":10, "pady":10}
+    FRAME_1_KW = {"fill":"both", "expand":True, "padx":5, "pady":10}
     file_list_frame.pack(**FRAME_1_KW)
     excel_file_handler.ui.pack(fill="both", expand=True, pady=5) #type: ignore
     more_files_button.pack(side=LEFT, padx=5, pady=5)
-    continue_button.pack(side=TOP, anchor="e", padx=10, pady=(5, 10))
+    continue_button.pack(side=TOP, anchor="e", padx=5, pady=5)
 
     # Frame 2
     FRAME_2_KW = {"fill":"both", "expand":True, "padx":10, "pady":(10,5)}
@@ -360,6 +373,13 @@ if __name__ == "__main__":
     insert_doc_frame.pack(anchor="n", fill="x", padx=5)
     empty_dnd_box.pack_inner()
     insert_dnd_box.pack_inner()
+
+    for container in [empty_doc_frame.content, insert_doc_frame.content]:
+        # (1, 1) has weight 0 since the generate buttons need to always be visible
+        container.grid_columnconfigure(0, weight=1) 
+        container.grid_columnconfigure(1, weight=0)
+        container.grid_rowconfigure(0, weight=1)
+        container.grid_rowconfigure(1, weight=0)
 
     empty_dnd_box.frame.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=10, pady=10)
     insert_dnd_box.frame.grid(row=0, column=0, rowspan=2, sticky="nsew", padx=10, pady=10)
