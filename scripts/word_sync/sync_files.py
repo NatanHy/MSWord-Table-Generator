@@ -2,36 +2,32 @@ import openpyxl
 import docx.document
 import re
 from .heading_tree import HeadingTree, build_heading_tree
-from typing import List, Iterator
+from typing import List, Iterator, Generator
 from table_generation import Component
 from utils.xls_parsing import parse_components_cached, get_description, set_description, set_component_name, get_xls_from_process_type
 from utils.xml import insert_paragraph_after
 from rapidfuzz import process, fuzz
 from .file_manager import WordFileManager, ExcelFileManager
 from os import fspath
+from dataclasses import dataclass
 
 def get_descriptions(doc : docx.document.Document) -> Iterator[HeadingTree]:
     root = build_heading_tree(doc)
     yield from root.filter(lambda node : node.heading is not None and node.heading.text == "Description")
 
-def similarity_to_rgb(score):
-    t = score / 100
-
-    r = int((1 - t) * 255)
-    g = int(t * t * 255)
-    b = 0
-
-    return r, g, b
-
-def colored_similarity_text(score):
-    r, g, b = similarity_to_rgb(score)
-    return f"\033[38;2;{r};{g};{b}m({score:.2f}% similar)\033[0m"
+@dataclass
+class Mismatch:
+    mismatch_type : str
+    similarity : float
+    header : str
+    in_word : str
+    in_excel : str
 
 class _WordDescription:
     def __init__(self, node : HeadingTree):
         self.node = node
-        self.process_type = self.node.get_parent_heading_absolute(1).text # Top level heading is process type
-        self.component_name = self.node.get_parent_heading_relative(1).text # One step above is component name
+        self.process_type = self.node.get_parent_heading_absolute(1).text #type: ignore Top level heading is process type
+        self.component_name = self.node.get_parent_heading_relative(1).text #type: ignore One step above is component name
 
     def description_paragraph(self):
         if len(self.node.paragraphs) > 0:
@@ -44,16 +40,21 @@ class _WordDescription:
             return para
 
     def set_component_name_heading(self, text : str):
-        print(f"Changed {self.node.parent.heading.text} to {text}")
-        self.node.parent.heading.text = text
+        print(f"Changed {self.node.parent.heading.text} to {text}") #type: ignore
+        self.node.parent.heading.text = text #type: ignore
 
-class DescriptionSyncer:
+
+class WordExcelSyncer:
     def __init__(self):
         self._process_to_xls_path = {}
         self._xls_managers = {}
         self._word_manager = None
 
-    def sync_descriptions(self, doc_path : str, xls_file_paths : List[str]):
+    def sync_files(self, doc_path : str, xls_file_paths : List[str]) -> Generator[Mismatch, str, None]:
+        """
+        Sync descriptions between a word document and excel file. Also allows syncing of
+        mismatched component names in headers. 
+        """
         self._word_manager = WordFileManager(doc_path)
 
         for desc in get_descriptions(self._word_manager.doc):
@@ -62,17 +63,17 @@ class DescriptionSyncer:
             xls_path = get_xls_from_process_type(description.process_type, xls_file_paths)
             if xls_path is None:
                 print(f"Skipping {description.process_type}")
-                continue # Skip iteration if no xls file is chosen
+                continue # Skip iteration if no matching xls file is found
             
             xls_manager = self._parse_excel(xls_path)
             components = parse_components_cached(xls_manager.xls)
-            best_matching_component = self._find_best_component_match(description, components)
+            best_matching_component = yield from self._find_best_component_match(description, components)
 
             if best_matching_component is None:
                 print(f"Skipping {description.component_name}")
                 continue
-
-            self._set_descriptions(description, best_matching_component, xls_manager.wb)
+            
+            yield from self._set_descriptions(description, best_matching_component, xls_manager.wb)
 
     def save_files(self):
         if self._word_manager is not None:
@@ -80,21 +81,33 @@ class DescriptionSyncer:
         for xls_manager in self._xls_managers.values():
             xls_manager.backup_and_save()
 
-    def _set_descriptions(self, description : _WordDescription, component : Component, wb : openpyxl.Workbook):
+    def _set_descriptions(self, description : _WordDescription, component : Component, wb : openpyxl.Workbook) -> Generator[Mismatch, str, None]:
         paragraph = description.node.get_or_insert_paragraph(0)
 
         word_description = paragraph.text
         excel_description = get_description(wb, component.id)
 
-        if word_description == excel_description:
-            return
+        similarity = fuzz.ratio(word_description, excel_description)
 
-        if len(word_description) > len(excel_description):
-            print(f"Syncing description for {component.id} using Word description. '{excel_description}' -> '{word_description}'")
-            set_description(wb, component.id, word_description)
-        elif len(excel_description) > len(word_description):
-            print(f"Syncing description for {component.id} using Excel description. '{word_description}' -> '{excel_description}'")
-            paragraph.text = excel_description
+        while True:
+            choice = yield Mismatch(
+                "description", 
+                similarity, 
+                f"{description.process_type.strip()} - {description.component_name.strip()}", 
+                word_description, 
+                excel_description
+                )
+
+            match choice:
+                case "w":
+                    set_description(wb, component.id, word_description)
+                case "e":
+                    paragraph.text = excel_description
+                case "s" | "": 
+                    return None
+                case _:
+                    # Unkown command
+                    pass
 
     def _parse_excel(self, xls_path : str) -> ExcelFileManager:
         if xls_path in self._xls_managers:
@@ -104,8 +117,8 @@ class DescriptionSyncer:
         self._xls_managers[xls_path] = xls_manager
         return xls_manager
 
-    def _find_best_component_match(self, description : _WordDescription, components : List[Component]) -> Component | None:
-        target = description.component_name
+    def _find_best_component_match(self, description : _WordDescription, components : List[Component]) -> Generator[Mismatch, str, Component | None]:
+        target = description.component_name.strip()
 
         choices = [comp.name for comp in components] # Extract names of components
         best_match = process.extractOne(
@@ -118,18 +131,16 @@ class DescriptionSyncer:
         best_matching_component = components[index]
 
         if int(similarity) == 100:
+            print("Perfect match")
             return best_matching_component
-        return self._handle_component_mismatch(description, best_matching_component, similarity)
+        
+        handled_mismatch = yield from self._handle_component_mismatch(description, best_matching_component, similarity)
+        return handled_mismatch
 
-    def _handle_component_mismatch(self, description : _WordDescription, component : Component, similarity) -> Component | None:
-        sim_text = colored_similarity_text(similarity)
-        print(f"\033[31mFound mismatch \033[0m{sim_text}:")
-        print(f"\tIn '{description.process_type}'")
-        print(f"\tWord:  '{description.component_name}'")
-        print(f"\tExcel: '{component.name}'")
-
+    def _handle_component_mismatch(self, description : _WordDescription, component : Component, similarity) -> Generator[Mismatch, str, Component | None]:
         while True:
-            match input("Replace all instances with Word (W), Excel (E), or skip this heading (S)\n-> ").lower():
+            choice = yield Mismatch("component", similarity, description.process_type, description.component_name, component.name)
+            match choice:
                 case "w":
                     self._set_headings(description, component, description.component_name)
                     return component
@@ -139,7 +150,8 @@ class DescriptionSyncer:
                 case "s" | "":
                     return None
                 case _:
-                    print("Unkown command, use (W), (E), or (S)")
+                    # Unknown command
+                    pass
 
     def _set_headings(self, description : _WordDescription, component : Component, text : str):
         description.set_component_name_heading(text)

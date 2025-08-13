@@ -97,16 +97,14 @@ def parse_variables(xls : pd.ExcelFile) -> Dict[str, str]:
 
     return variables
 
-def get_xls_from_process_type(process_type : str, xls_files : Iterable[str]) -> str:
+def get_xls_from_process_type(process_type : str, xls_files : Iterable[str]) -> str | None: 
     #TODO
     match process_type.strip():
         case "Fuel processes":
             pth = "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052141 - SFK FEP-katalog för FSAR - Fuel_v0.10.xlsx"
         case "Canister processes":
             pth = "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052142 - SFK FEP-katalog för FSAR - Canister_v0.4.xlsx"
-        case e:
-            raise ValueError(f"Unknown process: '{e}'")
+        case _:
+            return None
     if pth in xls_files:
         return pth
-    else:
-        raise ValueError(f"Could not find excel file for process type: {process_type}")

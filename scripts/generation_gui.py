@@ -1,7 +1,6 @@
-from tkinter import TOP, LEFT, RIGHT
 import customtkinter as ctk
-from gui import Tk, DnDBox, CollapsibleFrame, SelectedFilesHandler, PopUpWindow, TextboxRedirector, OnHover
-from utils.gui import *
+from gui import *
+from utils.gui_utils import *
 from utils.redirect_manager import redirect_stdout_to
 from utils.files import create_backup
 from tkinterdnd2 import DND_ALL
@@ -34,63 +33,27 @@ current_frame = 0
 table_queue = queue.Queue()
 async_table_generator = AsyncTableGenerator(table_queue)
 
+# Callback when using back button on frame 3
+def _back_3():
+    disable_button(save_button)
+    async_table_generator.stop_event.set()
 
+ON_BACK_CALLBACKS = {3: _back_3}
 
-def show_wrong_file_popup(file_handler : SelectedFilesHandler, file_paths : List[str]):
-    popup_win = PopUpWindow(root, "Wrong file type", "Wrong file type.")
-
-    def add_anyway():
-        prev_filter = file_handler.filter
-        file_handler.filter = lambda s: True # Disable filter
-        file_handler.add_files(file_paths)
-        file_handler.filter = prev_filter # Restore filter
-        popup_win.destroy()
-
-    add_button = ctk.CTkButton(popup_win, text="Add anyway", command=add_anyway)
-    ok_button = ctk.CTkButton(popup_win, text="Ok", command=popup_win.destroy)
-    add_button.pack(side=LEFT, padx=5, pady=5)
-    ok_button.pack(side=RIGHT, padx=5, pady=5)
-
-def go_to_frame(frame, **kwargs):
-    global current_frame
-    hide_ui_element(frames[current_frame])
-
-    current_frame = frame
-
-    display_ui_element(frames[current_frame], **kwargs)
-
-    if current_frame != 0:
-        back_button.place(x=10, y=10)
-
-def prev_frame(**kwargs):
-    global current_frame
-
-    hide_ui_element(frames[current_frame])
-    current_frame -= 1
-
-    if current_frame < 0:
-        return
-
-    display_ui_element(frames[current_frame], **kwargs)
-
-def back():
-    match current_frame:
-        case 1:
-            hide_ui_element(back_button)
-            prev_frame(**FRAME_0_KW)
-        case 2:
-            prev_frame(**FRAME_1_KW)
-        case 3:
-            prev_frame(**FRAME_2_KW)
-            disable_button(save_button)
-            async_table_generator.stop_event.set()
-        case _:
-            return # Back button should not do anything on first frame
+FRAME_0_KW = {"side":TOP, "padx":10, "pady":10, "expand":True, "fill":"both"}
+FRAME_1_KW = {"fill":"both", "expand":True, "padx":5, "pady":10}
+FRAME_2_KW = {"fill":"both", "expand":True, "padx":10, "pady":(10,5)}
+FRAME_KWARGS = {
+    0: {"side":TOP, "padx":10, "pady":10, "expand":True, "fill":"both"},
+    1: {"fill":"both", "expand":True, "padx":5, "pady":10},
+    2: {"fill":"both", "expand":True, "padx":10, "pady":(10,5)},
+    3: {"fill":"both"}
+}
 
 def gen_tables(insert=False):
     global recieved_tables, doc_for_insertion, doc_path_for_insertion
     
-    go_to_frame(3, fill="both")
+    frame_manager.go_to_frame(3)
     recieved_tables = [] # Clear tables left from previous generate
     async_table_generator.stop_event.clear() # Make sure the stop flag is set to false
 
@@ -115,11 +78,6 @@ def poll_table_queue():
         table = table_queue.get_nowait()
         recieved_tables.append(table)
     except queue.Empty:
-        # Table generation completed
-        if async_table_generator.is_done():
-            # Allow saving of files
-            enable_button(save_button)
-
         pass
     root.after(100, poll_table_queue)  # Poll every 100ms
 
@@ -157,27 +115,26 @@ def show_save_confirmation(folder_path):
     confirm_win.set_right("Ok", confirm_win.destroy)
 
 if __name__ == "__main__":
-    # File handlers
-    excel_file_handler = SelectedFilesHandler(
-        filter=lambda s: s.endswith(".xlsx"), 
-        on_wrong=show_wrong_file_popup,
-        after_add=lambda: go_to_frame(1, **FRAME_1_KW)
-        )
-    empty_doc_file_handler = SelectedFilesHandler(
-        filter=lambda s: s.endswith(".docx"), 
-        on_wrong=show_wrong_file_popup
-        )
-    insert_doc_file_handler = SelectedFilesHandler(
-        filter=lambda s: s.endswith(".docx"), 
-        on_wrong=show_wrong_file_popup,
-        )
-
     ctk.set_appearance_mode("system")
 
     # root for window
     root = Tk()
     root.geometry(RESOLUTION)
     root.title("Table Generator")
+
+    # File handlers
+    excel_file_handler = SelectedFilesHandler(
+        filter=lambda s: s.endswith(".xlsx"), 
+        on_wrong=wrong_files_popup(root, "Wrong file type, file must be Excel file (.xlsx)")
+        )
+    empty_doc_file_handler = SelectedFilesHandler(
+        filter=lambda s: s.endswith(".docx"), 
+        on_wrong=wrong_files_popup(root,  "Wrong file type, file must be Word file (.docx)")
+        )
+    insert_doc_file_handler = SelectedFilesHandler(
+        filter=lambda s: s.endswith(".docx"), 
+        on_wrong=wrong_files_popup(root, "Wrong file type, file must be Word file (.docx)")
+        )
 
     #==================================================
     # Containers (frames) for the different pages
@@ -199,17 +156,22 @@ if __name__ == "__main__":
 
     # Container for elements shown once files have been chosen
     files_chosen_frame = ctk.CTkFrame(root, fg_color="transparent")
-    files_chosen_frame.drop_target_register(DND_ALL) # type: ignore
-    files_chosen_frame.dnd_bind("<<Drop>>", excel_file_handler.drag_and_drop_files) # type: ignore
 
     # Container for choosing generation type/settings
     generate_settings_frame = ctk.CTkFrame(root, fg_color="transparent")
 
     # Frame to display while generating tables
     generating_frame = ctk.CTkFrame(root, fg_color="transparent")
+    
+    # Frame manager for chaning between frames
+    frame_manager = FrameManager(
+        root, 
+        frames=[dnd_box.frame, files_chosen_frame, generate_settings_frame, generating_frame],
+        frame_kwargs=FRAME_KWARGS,
+        on_back_callbacks=ON_BACK_CALLBACKS
+        )
 
-    frames = [dnd_box.frame, files_chosen_frame, generate_settings_frame, generating_frame]
-
+    excel_file_handler.after_add=lambda: frame_manager.go_to_frame(1)
     #==================================================
     # Defining UI elements and inner containers
     #==================================================
@@ -226,16 +188,6 @@ if __name__ == "__main__":
     sub_header_label = ctk.CTkLabel(
         header_container, 
         text="Generate Word tables from excel data"
-    )
-
-    # Back button
-    back_img = ctk.CTkImage(light_image=Image.open("resources/back_arrow_white.png"), size=(20, 20))
-    back_button = ctk.CTkButton(
-        header_frame, 
-        image=back_img,
-        text="",
-        command=back,
-        width=30,
     )
     
     # Backup button
@@ -279,7 +231,7 @@ if __name__ == "__main__":
         width=250,
         height=60,
         font=("Segoe UI", 20, "bold"),
-        command=lambda: go_to_frame(2, **FRAME_2_KW)
+        command=lambda: frame_manager.go_to_frame(2)
     )
 
     # Containers for the two generation types
@@ -314,6 +266,9 @@ if __name__ == "__main__":
         font=("Segoe UI", 20, "bold"),
         command=lambda: gen_tables(insert=False)
     )
+
+    def _disable_gen_while() -> bool:
+        return not insert_doc_file_handler.has_files
     gen_insert_button = ctk.CTkButton(
         insert_doc_frame.content,
         text="Generate",
@@ -322,8 +277,7 @@ if __name__ == "__main__":
         font=("Segoe UI", 20, "bold"),
         command=lambda: gen_tables(insert=True)
     )
-    disable_button(gen_insert_button)
-    insert_doc_file_handler.after_add = lambda: enable_button(gen_insert_button)
+    disable_button_while(gen_insert_button, _disable_gen_while)
 
     # Command-line style textbox for table generation output
     output_textbox = ctk.CTkTextbox(
@@ -335,6 +289,9 @@ if __name__ == "__main__":
     output_redirector = TextboxRedirector(output_textbox)
     async_table_generator.stdout_redirect = output_redirector
     
+    def _disable_save_while() -> bool:
+        return not async_table_generator.is_done()
+
     # Button for saving tables
     save_button = ctk.CTkButton(
         generating_frame,
@@ -344,7 +301,7 @@ if __name__ == "__main__":
         font=("Segoe UI", 20, "bold"),
         command=save_tables
     ) 
-    disable_button(save_button)
+    disable_button_while(save_button, _disable_save_while)
 
     #==================================================
     # Placing UI elements and inner containers
@@ -358,19 +315,16 @@ if __name__ == "__main__":
     backup_button.place(relx=1.0, anchor="ne", x=-10, y=10)
 
     # Frame 0
-    FRAME_0_KW = {"side":TOP, "padx":10, "pady":10, "expand":True, "fill":"both"}
     dnd_box.frame.pack(**FRAME_0_KW)
     dnd_box.pack_inner()
     
     # Frame 1
-    FRAME_1_KW = {"fill":"both", "expand":True, "padx":5, "pady":10}
     file_list_frame.pack(**FRAME_1_KW)
     excel_file_handler.ui.pack(fill="both", expand=True, pady=5) #type: ignore
     more_files_button.pack(side=LEFT, padx=5, pady=5)
     continue_button.pack(side=TOP, anchor="e", padx=5, pady=5)
 
     # Frame 2
-    FRAME_2_KW = {"fill":"both", "expand":True, "padx":10, "pady":(10,5)}
     empty_doc_frame.pack(anchor="n", fill="x", padx=5)
     insert_doc_frame.pack(anchor="n", fill="x", padx=5)
     empty_dnd_box.pack_inner()

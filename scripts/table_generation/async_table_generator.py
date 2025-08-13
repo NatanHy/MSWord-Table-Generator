@@ -158,12 +158,10 @@ class AsyncTableGenerator:
             # component name used to find correct component in excel file
             component_name = heading.get_parent_heading_relative(1).text #type: ignore
 
-            try:
-                xls_path = get_xls_from_process_type(process_type, xls_paths)
-            except ValueError as e:
-                print(e)
+            # Ignore process type if it is not defined in the document
+            if (xls_path := get_xls_from_process_type(process_type, xls_paths)) is None:
                 continue
-            
+
             # Use cahced components
             if xls_path in parsed_components:
                 components = parsed_components[xls_path]

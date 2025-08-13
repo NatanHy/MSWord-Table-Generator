@@ -4,14 +4,13 @@ from tkinter import LEFT, RIGHT
 class PopUpWindow(ctk.CTkToplevel):
     def __init__(self, master, title, text, width=300, height=120):
         super().__init__(master)
-        self.title(title)
+        self.label = ctk.CTkLabel(self, text=text)
+
         self.resizable(True, False)
-
         self.pack_propagate(True)
+        self.title(title)
 
-        label = ctk.CTkLabel(self, text=text)
-        label.pack(pady=(20, 5))
-
+        self.label.pack(pady=(20, 5))
         # Delay geometry call to allow rendering
         self.after(10, lambda: self._center(master, width, height))
 

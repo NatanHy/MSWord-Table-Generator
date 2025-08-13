@@ -1,11 +1,10 @@
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.oxml.table import CT_Tbl
-from docx.text.paragraph import Paragraph
-from docx.table import Table
 from typing import cast
 from docx.oxml import OxmlElement
-
+from docx.text.paragraph import Paragraph
+from docx.table import Table
 from typing import Union
 BlockItem = Union[Paragraph, Table]
 

@@ -1,6 +1,7 @@
 from typing import Iterable
 from gui.file_item import FileItem
 import customtkinter as ctk
+from tkinterdnd2 import DND_ALL
 
 class _UI:
     def __init__(self, master, **kwargs):
@@ -39,11 +40,18 @@ class SelectedFilesHandler:
         self.add_ui(master)
 
     @property
+    def has_files(self):
+        return len(self.selected_file_paths) > 0
+
+    @property
     def first_path(self):
         return next(iter(self.selected_file_paths))
 
     def add_ui(self, master, **kwargs):
         self.ui = _UI(master, **kwargs)
+        if master is not None:
+            self.ui.file_list_scroll_frame._parent_frame.drop_target_register(DND_ALL) # type: ignore
+            self.ui.file_list_scroll_frame._parent_frame.dnd_bind("<<Drop>>", self.drag_and_drop_files) # type: ignore
 
     def add_files(self, file_paths : Iterable[str]):
         for f in file_paths:
@@ -82,6 +90,6 @@ class SelectedFilesHandler:
         self.selected_file_paths.remove(file_item.file_path)
         
     def _add_file_item(self, path):
-        if self.ui is not None:
+        if self.ui.initialized:
             item = FileItem(self.ui.file_list_scroll_frame, path, self._remove_file_item)
             self.file_items.append(item)
