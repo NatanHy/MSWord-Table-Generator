@@ -92,4 +92,5 @@ class SelectedFilesHandler:
     def _add_file_item(self, path):
         if self.ui.initialized:
             item = FileItem(self.ui.file_list_scroll_frame, path, self._remove_file_item)
+            item.pack(fill="x", padx=0, pady=1)
             self.file_items.append(item)

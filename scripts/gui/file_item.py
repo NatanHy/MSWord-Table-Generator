@@ -6,7 +6,6 @@ class FileItem(ctk.CTkFrame):
         super().__init__(
             master,            
             fg_color="transparent", 
-            border_color="#444",    
             border_width=1,
             corner_radius=6
             )
@@ -22,7 +21,6 @@ class FileItem(ctk.CTkFrame):
 
         self.remove_button = ctk.CTkButton(self, text="X", width=30, command=self.remove, fg_color="#ff0000")
         self.remove_button.grid(row=0, column=1, sticky="e", padx=(5, 10), pady=5)
-        self.pack(fill="x")
 
     def remove(self):
         self.destroy()

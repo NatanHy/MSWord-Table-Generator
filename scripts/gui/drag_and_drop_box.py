@@ -15,7 +15,6 @@ class DnDBox:
         self.master = master
         self.frame = ctk.CTkFrame(
             master,
-            border_color="#444",
             border_width=1
             )
         self.frame.drop_target_register(DND_ALL)  # type: ignore

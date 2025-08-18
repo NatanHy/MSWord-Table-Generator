@@ -214,7 +214,7 @@ if __name__ == "__main__":
     excel_file_handler.ui.configure(fg_color="transparent")
     
     # Add files button
-    add_files_img = ctk.CTkImage(dark_image=Image.open("resources/add_files_white.png"), light_image=Image.open("resources/add_files_black.png"), size=(20, 20))
+    add_files_img = ctk.CTkImage(light_image=Image.open("resources/add_files_white.png"), size=(20, 20))
 
     more_files_button = ctk.CTkButton(
         file_list_frame, 

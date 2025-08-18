@@ -71,7 +71,6 @@ class AsyncTableGenerator:
                         return
                     # If there is already a table, remove it and it's heading
                     if remove_table_after_heading(doc, ce.paragraph.text):
-                        print(f"Deleted table for '{ce.paragraph.text}'")
                         self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
                         delete_paragraph(ce.paragraph)
                     else:
@@ -180,7 +179,7 @@ class AsyncTableGenerator:
             for c in components:
                 if c.name == component_name:
                     para = heading.get_or_insert_paragraph(-1)
-                    component_element = _ComponentElement(c, para)
+                    component_element = _ComponentElement(c, para) #type: ignore
                     filtered_components.append(component_element)
                     break
         
