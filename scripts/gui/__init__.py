@@ -7,7 +7,7 @@ from .text_box_redirect import TextboxRedirector
 from .tk import Tk
 from .on_hover import OnHover
 from .frame_manager import FrameManager
-from .multi_part_label import MultiPartLabel
+from .multi_part_label import MultiPartLabel, MultiPartTextBox
 
 __all__ = [
     "CollapsibleFrame", 
@@ -19,5 +19,6 @@ __all__ = [
     "Tk", 
     "OnHover", 
     "FrameManager",
-    "MultiPartLabel"
+    "MultiPartLabel",
+    "MultiPartTextBox"
     ]

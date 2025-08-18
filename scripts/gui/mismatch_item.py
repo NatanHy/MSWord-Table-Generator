@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from customtkinter import ThemeManager
+from gui import MultiPartLabel, MultiPartTextBox
 from word_sync.sync_files import Mismatch
 from utils.gui_utils import blend_colors, get_color
 from typing import Callable
@@ -59,25 +59,50 @@ def _diff_words(a: str, b: str):
     return result
 
 class DifferenceFrame(ctk.CTkFrame):
-    def __init__(self, master, text: str, button_text, on_press, icon_path=None, icon_text="", **kwargs):
+    def __init__(self, master, mismatch : Mismatch, file_type, on_press, **kwargs):
         super().__init__(master, **kwargs)
 
-        if icon_path:
-            img = ctk.CTkImage(Image.open(icon_path))
-            self._label = ctk.CTkLabel(self, text=icon_text, image=img, compound="left", text_color="gray")
-            self._label.pack(anchor="w", padx=5, pady=(5, 0))
+        match file_type:
+            case "word":
+                icon_path = "resources/word_icon.png"
+                icon_text = " In Word"
+                button_text = "Use Word"
+                text_diff_index = 0
+            case "excel":
+                icon_path = "resources/excel_icon.png"
+                icon_text = " In Excel"
+                button_text = "Use Excel"
+                text_diff_index = 1
+            case _:
+                raise ValueError(f"File type must be either 'word' or 'excel, found {file_type}")
 
-        font = ctk.CTkFont(family="Arial", size=16)
-        self.label = ctk.CTkLabel(self, text=text, font=font, anchor="w")
+        img = ctk.CTkImage(Image.open(icon_path))
+        self._label = ctk.CTkLabel(self, text=icon_text, image=img, compound="left", text_color="gray")
+        self._label.pack(anchor="w", padx=5, pady=(5, 0))
 
-        self.label.pack(expand=True, padx=5, pady=5)
+        self.text_box = self._make_text_box(mismatch, text_diff_index)
+        self.text_box.pack(fill="both", expand=True, padx=5, pady=5)
+
         ctk.CTkButton(self, text=button_text, command=on_press).pack(fill="x", expand=True, padx=5, pady=5)
 
-        self.bind("<Configure>", self._update_wraplength)
+    def _make_text_box(self, mismatch : Mismatch, indx : int) -> MultiPartTextBox:
+        substrings = _diff_words(mismatch.in_word, mismatch.in_excel)
+        parts = []
 
-    def _update_wraplength(self, event):
-        # Make wraplength match current label width
-        self.label.configure(wraplength=self.winfo_width()/ctk.ScalingTracker.get_window_scaling(self))
+        for subs in substrings:
+            if isinstance(subs, tuple):
+                if (text := subs[indx]) is not None:
+                    parts.append({
+                        "text": text + " ",
+                        "foreground": "red",
+                        "underline": True
+                    })
+            else:
+                parts.append({
+                    "text": subs + " ",
+                })
+        
+        return MultiPartTextBox(self, parts, height=70)
 
 class MismatchItem(ctk.CTkFrame):
     def __init__(
@@ -118,13 +143,13 @@ class MismatchItem(ctk.CTkFrame):
             parts=[
                 {
                     "text":f"{mismatch.mismatch_type.upper()} ",
-                    "font":bold_font,
-                    "text_color":border_color
+                    "text_color":border_color,
+                    "font":bold_font
                 },
                 {
                     "text":match_text,
-                    "font":font,
-                    "text_color":border_color
+                    "text_color":border_color,
+                    "font":font
                 },
             ]
             ).grid(row=0, column=0, padx=3, pady=5, sticky="nw")
@@ -149,20 +174,16 @@ class MismatchItem(ctk.CTkFrame):
 
             w_frame = DifferenceFrame(
                 self, 
-                text=f"{mismatch.in_word}", 
-                button_text="Use Word", 
+                mismatch=mismatch,
+                file_type="word",
                 on_press=self._button_cmd("w"),
-                icon_path="resources/word_icon.png",
-                icon_text=" In Word",
                 corner_radius=2
                 )
             e_frame = DifferenceFrame(
                 self, 
-                text=f"{mismatch.in_excel}", 
-                button_text="Use Excel",
+                mismatch=mismatch,
+                file_type="excel",
                 on_press=self._button_cmd("e"),
-                icon_path="resources/excel_icon.png",
-                icon_text=" In Excel",
                 corner_radius=2
                 )
             skip_button = ctk.CTkButton(self, text="Skip", command=self._button_cmd("s"))

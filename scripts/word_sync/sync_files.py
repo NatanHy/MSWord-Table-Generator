@@ -40,7 +40,6 @@ class _WordDescription:
             return para
 
     def set_component_name_heading(self, text : str):
-        print(f"Changed {self.node.parent.heading.text} to {text}") #type: ignore
         self.node.parent.heading.text = text #type: ignore
 
 
@@ -62,7 +61,6 @@ class WordExcelSyncer:
 
             xls_path = get_xls_from_process_type(description.process_type, xls_file_paths)
             if xls_path is None:
-                print(f"Skipping {description.process_type}")
                 continue # Skip iteration if no matching xls file is found
             
             xls_manager = self._parse_excel(xls_path)
@@ -70,7 +68,6 @@ class WordExcelSyncer:
             best_matching_component = yield from self._find_best_component_match(description, components)
 
             if best_matching_component is None:
-                print(f"Skipping {description.component_name}")
                 continue
             
             yield from self._set_descriptions(description, best_matching_component, xls_manager.wb)
@@ -133,7 +130,6 @@ class WordExcelSyncer:
         best_matching_component = components[index]
 
         if int(similarity) == 100:
-            print("Perfect match")
             return best_matching_component
         
         handled_mismatch = yield from self._handle_component_mismatch(description, best_matching_component, similarity)
