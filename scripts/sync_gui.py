@@ -1,7 +1,7 @@
 import customtkinter as ctk
 from utils.gui_utils import *
 from gui import Tk, OnHover, SelectedFilesHandler, FrameManager
-from gui.mismatch_item import MismatchItem
+from gui.mismatch_item import MismatchContainer
 from PIL import Image
 from word_sync import WordExcelSyncer
 
@@ -10,50 +10,42 @@ RES_X = 720
 RES_Y = round(RES_X * ASPECT_RATIO)
 RESOLUTION = f"{RES_X}x{RES_Y}"
 
-FRAME_0_KW = {"fill":"both", "expand":True}
-FRAME_KWARGS = {0:FRAME_0_KW}
+FRAME_0_KW = FRAME_1_KW = {"fill":"both", "expand":True}
+FRAME_KWARGS = {0:FRAME_0_KW, 1:FRAME_1_KW}
 
-def _similarity_to_rgb(score):
-    t = score / 100
+sync_done = False
 
-    r = int((1 - t) * 255)
-    g = int(t * t * 255)
-    b = 0
-
-    return r, g, b
-
-def _colored_similarity_text(score):
-    r, g, b = _similarity_to_rgb(score)
-    return f"\033[38;2;{r};{g};{b}m({score:.2f}% similar)\033[0m"
+def set_sync_done_false():
+    global sync_done
+    sync_done = False
 
 def sync():
+    global sync_done
+
     try:
         doc_path = word_file_handler.first_path
         xls_paths = list(excel_file_handler.selected_file_paths)
         frame_manager.go_to_frame(1)
+        frame_manager.frames[frame_manager.current_frame].update_idletasks()
 
         gen = file_syncer.sync_files(doc_path, xls_paths)
         mismatch = next(gen)  # Start the generator
         while True:
-            # sim_text = _colored_similarity_text(mismatch.similarity)
-            # print(f"\033[31mFound {mismatch.mismatch_type} mismatch \033[0m{sim_text}:")
-            # print(f"\tIn '{mismatch.header}'")
-            # print(f"\tWord:  '{mismatch.in_word}'")
-            # print(f"\tExcel: '{mismatch.in_excel}'")
+            mismatch_container.update_idletasks()
+            mismatch_container.add_mismatch(mismatch, fill="both", expand=True, padx=5, pady=5)
 
-            mismatch_item = MismatchItem(
-                syncing_frame, 
-                mismatch
-                )
-            
-            mismatch_item.pack()
-            decision = mismatch_item.get_choice()
+            if int(mismatch.similarity) != 100:            
+                decision = mismatch_container.get_choice()
+            else:
+                decision = "s"
             mismatch = gen.send(decision)
     except StopIteration:
-        pass
+        sync_done = True
 
 
 if __name__ == "__main__":
+    ctk.set_appearance_mode("dark")
+
     root = Tk()
     root.geometry(RESOLUTION)
     root.title("File syncing")
@@ -78,7 +70,8 @@ if __name__ == "__main__":
     frame_manager = FrameManager(
         root,
         frames=[selection_frame, syncing_frame],
-        frame_kwargs=FRAME_KWARGS
+        frame_kwargs=FRAME_KWARGS,
+        on_back_callbacks={1:set_sync_done_false}
     )
     
     # Backup button
@@ -134,6 +127,18 @@ if __name__ == "__main__":
     word_file_handler.add_ui(selection_frame)
     excel_file_handler.add_ui(selection_frame)
 
+    mismatch_container = MismatchContainer(syncing_frame)
+
+    # Button for saving synced files
+    save_button = ctk.CTkButton(
+        syncing_frame,
+        text="Save",
+        width=250,
+        height=60,
+        font=("Segoe UI", 20, "bold"),
+        command=file_syncer.save_files
+    ) 
+    disable_button_while(save_button, lambda: not sync_done)
 
     #==================================================
     # Placing UI elements and inner containers
@@ -151,6 +156,9 @@ if __name__ == "__main__":
     word_file_handler.ui.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
     excel_file_handler.ui.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
     sync_button.grid(row=3, column=1, sticky="nse", padx=5, pady=(5, 10))
+
+    mismatch_container.pack(fill="both", expand=True, padx=5, pady=(50, 5))
+    save_button.pack(side=BOTTOM, anchor="e", padx=5, pady=5)
 
     root.mainloop()
 

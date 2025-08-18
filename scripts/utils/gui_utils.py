@@ -57,9 +57,36 @@ def color_filter(img : Image.Image, clr):
 
     return colored
 
+def blend_colors(fg_hex, bg_hex, alpha):
+    """Blend fg_hex over bg_hex with given alpha (0.0-1.0)."""
+    fg = tuple(int(fg_hex[i:i+2], 16) for i in (1, 3, 5))
+    bg = tuple(int(bg_hex[i:i+2], 16) for i in (1, 3, 5))
+    blended = tuple(int((alpha * fg_c) + ((1 - alpha) * bg_c)) for fg_c, bg_c in zip(fg, bg))
+    return "#{:02x}{:02x}{:02x}".format(*blended)
+
+def _to_hex(widget, color: str) -> str:
+    r, g, b = widget.winfo_rgb(color)
+    return f"#{r//256:02x}{g//256:02x}{b//256:02x}"
+
+def _normalize_color(widget, color):
+    if isinstance(color, list):
+        return [_to_hex(widget, c) for c in color]
+    return _to_hex(widget, color)
+
+def get_color(widget, widget_name, field_name):
+    match ctk.get_appearance_mode():
+        case "Light":
+            return _normalize_color(widget, ThemeManager.theme[widget_name][field_name])[0]
+        case "Dark":
+            return _normalize_color(widget, ThemeManager.theme[widget_name][field_name])[1]
+
 def disable_button(button : CTkButton): 
     if button._state != "disabled":
-        button.configure(state="disabled", fg_color="#5a5a5a", text_color="gray80")
+        button.configure(
+            state="disabled",
+            fg_color=("gray80", "#5a5a5a"),   # light mode, dark mode
+            text_color=("gray40", "gray80")   # light mode, dark mode
+        )
 
 def enable_button(button : CTkButton):
     if button._state != "normal":

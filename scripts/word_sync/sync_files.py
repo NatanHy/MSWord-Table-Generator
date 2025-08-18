@@ -101,10 +101,12 @@ class WordExcelSyncer:
             match choice:
                 case "w":
                     set_description(wb, component.id, word_description)
+                    return
                 case "e":
                     paragraph.text = excel_description
+                    return
                 case "s" | "": 
-                    return None
+                    return
                 case _:
                     # Unkown command
                     pass

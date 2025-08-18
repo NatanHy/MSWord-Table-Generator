@@ -2,7 +2,7 @@
 !style("bold=True, name='Times New Roman', size=Pt(10)")
 
 "Variable" | !span("Variable influence on process", 3) | !span("Process influence on variables", 3) !newline
-"Variable" | "Influence present? (Yes/No Description)" | "Time period/Climate domain" | 
+"Variable" | "Influence present? (Yes/No Description)" | "Conditional domain" | 
 "Handling of influence (How/If not - Why)" | "Influence present? (Yes/No Description)" | 
 "Time period/Climate domain" | "Handling of influence (How/If not - Why)" !newline
 

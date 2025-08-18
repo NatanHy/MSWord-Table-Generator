@@ -10,19 +10,17 @@ import time, queue, sys, threading
 from utils.redirect_manager import redirect_stdout_to
 from utils.xls_parsing import *
 from utils.formatting import copy_document_styles
+from utils.xml import remove_table_after_heading, delete_paragraph
 from docx.text.paragraph import Paragraph
-from docx.table import Table
-from typing import Union
-BlockItem = Union[Paragraph, Table]
 
 class _ComponentElement:
     """
     Wrapper class to encapsulate a Component and the oxml element where this component should
     be placed in a word file.
     """
-    def __init__(self, component : Component, block_item : BlockItem):
+    def __init__(self, component : Component, paragraph : Paragraph):
         self.component = component
-        self.block_item = block_item
+        self.paragraph = paragraph
 
 class AsyncTableGenerator:
     """
@@ -71,7 +69,13 @@ class AsyncTableGenerator:
                     if self.stop_event.is_set():
                         print("Operation terminated.")
                         return
-                    self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.block_item)
+                    # If there is already a table, remove it and it's heading
+                    if remove_table_after_heading(doc, ce.paragraph.text):
+                        print(f"Deleted table for '{ce.paragraph.text}'")
+                        self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
+                        delete_paragraph(ce.paragraph)
+                    else:
+                        self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
                 print("Done.")
 
         self.thread = threading.Thread(target=task)

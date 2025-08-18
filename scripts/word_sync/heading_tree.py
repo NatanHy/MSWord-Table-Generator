@@ -1,6 +1,7 @@
 from docx.text.paragraph import Paragraph
 from docx.table import Table
 import docx.document
+from utils.xml import *
 from typing import List, Iterator, Callable
 import re
 
@@ -81,9 +82,10 @@ class HeadingTree:
             return self.paragraphs[indx]
         else:
             # Otherwise add a paragraph and return it
-            para = insert_paragraph_after(self.heading, style=style) #type: ignore
-            self.paragraphs.append(para)
-            return para
+            if self.heading:
+                para = insert_paragraph_after(self.heading, style=style)
+                self.paragraphs.append(para)
+                return para
 
 def _get_heading_level(style_name: str) -> int | None:
     """Extract heading level from style name, e.g., 'Heading 2' -> 2."""
