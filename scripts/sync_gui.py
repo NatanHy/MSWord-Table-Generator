@@ -27,10 +27,16 @@ def sync():
         xls_paths = list(excel_file_handler.selected_file_paths)
         frame_manager.go_to_frame(1)
         frame_manager.frames[frame_manager.current_frame].update_idletasks()
-
         gen = file_syncer.sync_files(doc_path, xls_paths)
-        mismatch = next(gen)  # Start the generator
+
+        # Set WM_DELETE_WINDOW protocol to break the while loop
+        def stop_loop():
+            mismatch_container._last.result_var.set("EXIT") #type: ignore
+        root.protocol("WM_DELETE_WINDOW", stop_loop)
+
         while True:
+            mismatch = next(gen)  # Start the generator
+
             mismatch_container.update_idletasks()
             mismatch_container.add_mismatch(mismatch, fill="both", expand=True, padx=5, pady=5)
 
@@ -38,18 +44,22 @@ def sync():
                 decision = mismatch_container.get_choice()
             else:
                 decision = "s"
+
+            if decision == "EXIT":
+                break
             mismatch = gen.send(decision)
+        root.destroy() # Only reached when WM_DELETE_WINODW is called
     except StopIteration:
         sync_done = True
 
 
 if __name__ == "__main__":
-    ctk.set_appearance_mode("dark")
+    ctk.set_appearance_mode("system")
 
     root = Tk()
     root.geometry(RESOLUTION)
     root.title("File syncing")
-
+    
     word_file_handler = SelectedFilesHandler(
         filter=lambda s: s.endswith(".docx"),
         on_wrong=wrong_files_popup(root, "Wrong file type, file must be Word file (.docx)")

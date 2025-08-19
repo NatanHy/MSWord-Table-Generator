@@ -128,10 +128,7 @@ class MismatchItem(ctk.CTkFrame):
         self.result_var = ctk.StringVar(value="")
 
         self.grid_columnconfigure((0, 1), weight=1, uniform="row2")
-        self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=0)
-        self.grid_rowconfigure(2, weight=1)
-        self.grid_rowconfigure(3, weight=0)
+        self.grid_rowconfigure((0, 3), weight=1)
 
         from gui import MultiPartLabel
 
@@ -152,14 +149,14 @@ class MismatchItem(ctk.CTkFrame):
                     "font":font
                 },
             ]
-            ).grid(row=0, column=0, padx=3, pady=5, sticky="nw")
+            ).grid(row=0, column=0, padx=5, pady=(5, 0), sticky="nw")
 
         ctk.CTkLabel(
             self, 
             text=f"{int(mismatch.similarity)}% match",
             font=font,
             text_color=border_color
-            ).grid(row=0, column=1, padx=5, pady=5, sticky="ne")
+            ).grid(row=0, column=1, padx=5, pady=(5, 3), sticky="ne")
         
         header_text = mismatch.header if mismatch.mismatch_type == "description" else ""
         ctk.CTkLabel(
@@ -167,11 +164,9 @@ class MismatchItem(ctk.CTkFrame):
             text=f"in {header_text}",
             font=font,
             text_color=border_color
-            ).grid(row=1, column=0, padx=5, pady=5, sticky="nw")
+            ).grid(row=1, column=0, columnspan=2, padx=5, sticky="nw")
 
         if int(mismatch.similarity) != 100:
-            print(_diff_words(mismatch.in_word, mismatch.in_excel))
-
             w_frame = DifferenceFrame(
                 self, 
                 mismatch=mismatch,
@@ -188,17 +183,14 @@ class MismatchItem(ctk.CTkFrame):
                 )
             skip_button = ctk.CTkButton(self, text="Skip", command=self._button_cmd("s"))
 
-            w_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
-            e_frame.grid(row=2, column=1, padx=5, pady=5, sticky="nsew")
+            w_frame.grid(row=2, column=0, padx=5, pady=(5, 0), sticky="nsew")
+            e_frame.grid(row=2, column=1, padx=5, pady=(5, 0), sticky="nsew")
             skip_button.grid(row=3, column=1, padx=5, pady=5, sticky="se")
 
     def get_choice(self):
         """Block until a choice is made and return it."""
-        try:
-            self.wait_variable(self.result_var)  # freezes until set
-            return self.result_var.get()
-        except Exception as e:
-            print(e)
+        self.wait_variable(self.result_var)
+        return self.result_var.get()
 
     def resolve(self):
         if self.on_resolve:
