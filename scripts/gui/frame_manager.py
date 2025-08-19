@@ -9,13 +9,15 @@ class FrameManager:
             current_frame=0, 
             frame_kwargs={}, 
             on_back_callbacks={},
-            place_back_button=True
+            place_back_button=True,
+            back_button_pos=(10, 10)
             ):
         self.frames = frames
         self.current_frame = current_frame
         self.frame_kwargs = frame_kwargs
         self.place_back_button = place_back_button
         self.callbacks = on_back_callbacks
+        self.back_button_pos = back_button_pos
 
         # Store a reference to back image, otherwise it gets garbage collected
         self._back_img = ctk.CTkImage(light_image=Image.open("resources/back_arrow_white.png"), size=(20, 20))
@@ -28,7 +30,7 @@ class FrameManager:
         )
     
     def go_to_frame(self, frame):
-        from utils.gui_utils import hide_ui_element, display_ui_element
+        from utils.gui_utils import hide_ui_element, display_ui_element #type: ignore
 
         if frame in self.frame_kwargs:
             kwargs = self.frame_kwargs[frame]
@@ -43,7 +45,7 @@ class FrameManager:
         display_ui_element(self.frames[self.current_frame], **kwargs)
 
         if self.current_frame != 0 and self.place_back_button:
-            self.back_button.place(x=10, y=10)
+            self.back_button.place(x=self.back_button_pos[0], y=self.back_button_pos[1])
 
     def back(self):
         from utils.gui_utils import hide_ui_element, display_ui_element

@@ -15,12 +15,21 @@ FRAME_KWARGS = {0:FRAME_0_KW, 1:FRAME_1_KW}
 
 sync_done = False
 
+def save_files():
+    file_syncer.save_files()
+    show_save_confirmation()
+
+def show_save_confirmation():
+    confirm_win = PopUpWindow(root, "Save Complete", "✅ Tables saved successfully!")
+    confirm_win.set_right("Ok", confirm_win.destroy)
+
 def set_sync_done_false():
     global sync_done
     sync_done = False
 
 def sync():
     global sync_done
+    original_protocol = root.protocol("WM_DELETE_WINDOW")
 
     try:
         doc_path = word_file_handler.first_path
@@ -50,6 +59,8 @@ def sync():
             mismatch = gen.send(decision)
         root.destroy() # Only reached when WM_DELETE_WINODW is called
     except StopIteration:
+        # restore WM_DELETE_WINDOW protocol
+        root.protocol("WM_DELETE_WINDOW", lambda: root.tk.call(original_protocol))
         sync_done = True
 
 
@@ -81,7 +92,8 @@ if __name__ == "__main__":
         root,
         frames=[selection_frame, syncing_frame],
         frame_kwargs=FRAME_KWARGS,
-        on_back_callbacks={1:set_sync_done_false}
+        on_back_callbacks={1:set_sync_done_false},
+        back_button_pos=(5, 5)
     )
     
     # Backup button
@@ -90,7 +102,7 @@ if __name__ == "__main__":
     backup_img = ctk.CTkImage(light_image=colored_image, size=(20, 20))
     
     backup_button = ctk.CTkButton(
-        selection_frame, 
+        root, 
         image=backup_img,
         text="",
         fg_color="transparent",
@@ -154,12 +166,13 @@ if __name__ == "__main__":
     # Placing UI elements and inner containers
     #==================================================
 
+    backup_button.pack(anchor="e", padx=5, pady=(5, 0))
+
     selection_frame.pack(**FRAME_0_KW)
     selection_frame.grid_columnconfigure((0, 1), weight=1)
     selection_frame.grid_rowconfigure((0, 1, 3), weight=0)
     selection_frame.grid_rowconfigure(2, weight=1) # Only let the file display expand
 
-    backup_button.grid(row=0, column=1, sticky="ne", padx=5, pady=(5, 0))
 
     select_word_button.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
     select_excel_button.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
@@ -167,7 +180,7 @@ if __name__ == "__main__":
     excel_file_handler.ui.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
     sync_button.grid(row=3, column=1, sticky="nse", padx=5, pady=(5, 10))
 
-    mismatch_container.pack(fill="both", expand=True, padx=5, pady=(50, 5))
+    mismatch_container.pack(fill="both", expand=True, padx=5, pady=5)
     save_button.pack(side=BOTTOM, anchor="e", padx=5, pady=5)
 
     root.mainloop()

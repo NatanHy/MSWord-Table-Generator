@@ -164,7 +164,7 @@ class MismatchItem(ctk.CTkFrame):
             text=f"in {header_text}",
             font=font,
             text_color=border_color
-            ).grid(row=1, column=0, columnspan=2, padx=5, sticky="nw")
+            ).grid(row=1, column=0, columnspan=2, padx=5, pady=(0, 3), sticky="nw")
 
         if int(mismatch.similarity) != 100:
             w_frame = DifferenceFrame(
