@@ -4,6 +4,7 @@ from gui import Tk, OnHover, SelectedFilesHandler, FrameManager
 from gui.mismatch_item import MismatchContainer
 from PIL import Image
 from word_sync import WordExcelSyncer
+import os
 
 ASPECT_RATIO = 9 / 16
 RES_X = 720
@@ -16,11 +17,26 @@ FRAME_KWARGS = {0:FRAME_0_KW, 1:FRAME_1_KW}
 sync_done = False
 
 def save_files():
-    file_syncer.save_files()
-    show_save_confirmation()
+    try:
+        file_syncer.save_files()
+        folder_path = os.path.dirname(word_file_handler.first_path)
+        show_save_confirmation(folder_path)
+    except Exception as e:
+        show_save_fail(e)
 
-def show_save_confirmation():
-    confirm_win = PopUpWindow(root, "Save Complete", "✅ Tables saved successfully!")
+def show_save_fail(err):
+    confirm_win = PopUpWindow(root, "Save Failed", f"Could not save synced files:\n{err}")
+    confirm_win.set_left("Cancel", confirm_win.destroy)
+    confirm_win.set_right("Ok", confirm_win.destroy)
+
+def show_save_confirmation(folder_path):
+    confirm_win = PopUpWindow(root, "Save Complete", "✅ Synced files saved successfully!")
+
+    def open_and_destroy():
+        open_folder(folder_path)
+        confirm_win.destroy()
+
+    confirm_win.set_left("Open Folder", open_and_destroy)
     confirm_win.set_right("Ok", confirm_win.destroy)
 
 def set_sync_done_false():

@@ -4,7 +4,7 @@ from tkinter import LEFT, RIGHT
 class PopUpWindow(ctk.CTkToplevel):
     def __init__(self, master, title, text, width=300, height=120):
         super().__init__(master)
-        self.label = ctk.CTkLabel(self, text=text)
+        self.label = ctk.CTkLabel(self, text=text, wraplength=width)
 
         self.resizable(True, False)
         self.pack_propagate(True)
