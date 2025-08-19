@@ -158,7 +158,7 @@ if __name__ == "__main__":
         width=250,
         height=60,
         font=("Segoe UI", 20, "bold"),
-        command=file_syncer.save_files
+        command=save_files
     ) 
     disable_button_while(save_button, lambda: not sync_done)
 

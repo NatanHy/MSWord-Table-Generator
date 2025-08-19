@@ -64,7 +64,7 @@ class ComponentInfo:
                 values = get_non_null_values_from_row(self.df, DESC_ROW).to_list()[1:]
                 return list(set(values))
             case _:
-                return []
+                raise ValueError(f"Level {level} is not a valid index.")
     
     @cache
     def _get_l0_df(self, l0) -> pd.DataFrame:

@@ -20,10 +20,11 @@ class ExcelFileManager(FileManager):
     def __init__(self, file_path : str):
         super().__init__(file_path)
         self.xls = pd.ExcelFile(file_path)
-        self.wb = openpyxl.load_workbook(file_path)
+        self.wb = openpyxl.load_workbook(file_path, data_only=True)
 
     def save(self):
         self.wb.save(self.file_path)
+        self.wb.close()
 
 class WordFileManager(FileManager):
     def __init__(self, file_path : str):

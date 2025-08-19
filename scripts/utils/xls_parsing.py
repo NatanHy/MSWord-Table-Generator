@@ -26,7 +26,8 @@ def set_component_name(wb : openpyxl.Workbook, component : Component, text : str
         cell = row[0]
         if cell.value == component.id:
             # Set component name in column C of the same row
-            ws[f"C{i}"] = text  
+            ws[f"C{i + 2}"] = text  
+            print(f"set C{i + 2} to {text}")
             break
 
 def get_filtered_by_id(xls : pd.ExcelFile, prefix="") -> pd.DataFrame:
