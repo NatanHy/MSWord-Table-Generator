@@ -9,15 +9,21 @@ from PIL import ImageOps, Image
 if TYPE_CHECKING:
     from gui import SelectedFilesHandler, PopUpWindow
 
+def switch_theme():
+    current = ctk.get_appearance_mode()
+    if current == "Dark":
+        ctk.set_appearance_mode("Light")
+    else:
+        ctk.set_appearance_mode("Dark")
+
 def wrong_files_popup(root, err_message):
-    from gui import PopUpWindow
-    
     def f(file_handler : 'SelectedFilesHandler', file_paths : List[str]):
+        from gui import PopUpWindow
         popup_win = PopUpWindow(root, "Wrong file type", err_message)
         return _show_wrong_file_popup(popup_win, file_handler, file_paths)
     return f
 
-def _show_wrong_file_popup(popup_win : PopUpWindow, file_handler : SelectedFilesHandler, file_paths : List[str]):
+def _show_wrong_file_popup(popup_win : 'PopUpWindow', file_handler : 'SelectedFilesHandler', file_paths : List[str]):
     def add_anyway():
         prev_filter = file_handler.filter
         file_handler.filter = lambda s: True # Disable filter

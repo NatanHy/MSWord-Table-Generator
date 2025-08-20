@@ -1,12 +1,18 @@
 import os
 
 import customtkinter as ctk
-from customtkinter import ThemeManager, BOTTOM
+from customtkinter import ThemeManager, BOTTOM, RIGHT
 from PIL import Image
 
 from gui import Tk, OnHover, SelectedFilesHandler, FrameManager, MismatchContainer, PopUpWindow
 from word_sync import WordExcelSyncer
-from utils.gui_utils import open_folder, wrong_files_popup, color_filter, disable_button_while
+from utils.gui_utils import (
+    open_folder, 
+    wrong_files_popup, 
+    color_filter, 
+    disable_button_while, 
+    switch_theme
+    )
 
 ASPECT_RATIO = 9 / 16
 RES_X = 720
@@ -103,6 +109,7 @@ if __name__ == "__main__":
     # Defining UI elements and inner containers
     #==================================================
 
+    header_frame = ctk.CTkFrame(root, fg_color="transparent")
     selection_frame = ctk.CTkFrame(root, fg_color="transparent")
     syncing_frame = ctk.CTkFrame(root, fg_color="transparent")
 
@@ -120,7 +127,7 @@ if __name__ == "__main__":
     backup_img = ctk.CTkImage(light_image=colored_image, size=(20, 20))
     
     backup_button = ctk.CTkButton(
-        root, 
+        header_frame, 
         image=backup_img,
         text="",
         fg_color="transparent",
@@ -131,6 +138,24 @@ if __name__ == "__main__":
     )
     # save object instance to stop python's garbage collector form deleting it
     _hover = OnHover(backup_button, "Open backups folder")
+
+    # Button for changing Light/Dark theme
+    sun = Image.open("resources/sun.png")
+    colored_sun_image = color_filter(sun, ThemeManager.theme["CTkButton"]["fg_color"])
+    moon = Image.open("resources/moon.png")
+    colored_moon_image = color_filter(moon, ThemeManager.theme["CTkButton"]["fg_color"])
+    theme_change_img = ctk.CTkImage(light_image=colored_moon_image, dark_image=colored_sun_image, size=(20, 20))
+    
+    theme_change_button = ctk.CTkButton(
+        header_frame, 
+        image=theme_change_img,
+        text="",
+        fg_color="transparent",
+        border_color=ThemeManager.theme["CTkButton"]["fg_color"],
+        border_width=1,
+        command=switch_theme,
+        width=30,
+    )    
 
     select_word_button = ctk.CTkButton(
         selection_frame, 
@@ -184,7 +209,9 @@ if __name__ == "__main__":
     # Placing UI elements and inner containers
     #==================================================
 
-    backup_button.pack(anchor="e", padx=5, pady=(5, 0))
+    header_frame.pack(expand="True", fill="x")
+    backup_button.pack(side=RIGHT, padx=5, pady=(5, 0))
+    theme_change_button.pack(side=RIGHT, padx=5, pady=(5, 0))
 
     selection_frame.pack(**FRAME_0_KW)
     selection_frame.grid_columnconfigure((0, 1), weight=1)

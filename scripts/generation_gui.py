@@ -26,7 +26,8 @@ from utils.gui_utils import (
     open_folder, 
     wrong_files_popup, 
     color_filter, 
-    disable_button_while
+    disable_button_while,
+    switch_theme
     )
 from utils.redirect_manager import redirect_stdout_to
 from utils.files import create_backup
@@ -191,6 +192,7 @@ if __name__ == "__main__":
         )
 
     excel_file_handler.after_add=lambda: frame_manager.go_to_frame(1)
+    
     #==================================================
     # Defining UI elements and inner containers
     #==================================================
@@ -224,6 +226,25 @@ if __name__ == "__main__":
         command=lambda: open_folder("backups"),
         width=30,
     )
+
+    # Button for changing Light/Dark theme
+    sun = Image.open("resources/sun.png")
+    colored_sun_image = color_filter(sun, ThemeManager.theme["CTkButton"]["fg_color"])
+    moon = Image.open("resources/moon.png")
+    colored_moon_image = color_filter(moon, ThemeManager.theme["CTkButton"]["fg_color"])
+    theme_change_img = ctk.CTkImage(light_image=colored_moon_image, dark_image=colored_sun_image, size=(20, 20))
+    
+    theme_change_button = ctk.CTkButton(
+        header_frame, 
+        image=theme_change_img,
+        text="",
+        fg_color="transparent",
+        border_color=ThemeManager.theme["CTkButton"]["fg_color"],
+        border_width=1,
+        command=switch_theme,
+        width=30,
+    )    
+
     # save object instance to stop python's garbage collector form deleting it
     _hover = OnHover(backup_button, "Open backups folder")
 
@@ -332,6 +353,7 @@ if __name__ == "__main__":
     header_label.pack()
     sub_header_label.pack()
     backup_button.place(relx=1.0, anchor="ne", x=-10, y=10)
+    theme_change_button.place(relx=1.0, anchor="ne", x=-50, y=10)
 
     # Frame 0
     dnd_box.frame.pack(**FRAME_0_KW)
