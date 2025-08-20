@@ -14,9 +14,10 @@ from utils.xls_parsing import (
     get_description,
     set_description, 
     set_component_name, 
-    get_xls_from_component_id
+    get_xls_from_component_id,
+    get_component_by_id
     )
-from utils.xml import insert_paragraph_after
+from utils.xml import insert_paragraph_after, parse_mappings
 
 def get_descriptions(doc : docx.document.Document) -> Iterator[HeadingTree]:
     root = build_heading_tree(doc)
@@ -33,8 +34,8 @@ class Mismatch:
 class _WordDescription:
     def __init__(self, node : HeadingTree):
         self.node = node
-        self.process_type = self.node.get_parent_heading_absolute(1).text #type: ignore Top level heading is process type
-        self.component_name = self.node.get_parent_heading_relative(1).text #type: ignore One step above is component name
+        self.process_type = self.node.get_parent_heading_absolute(1).text.strip() #type: ignore Top level heading is process type
+        self.component_name = self.node.get_parent_heading_relative(1).text.strip() #type: ignore One step above is component name
 
     def description_paragraph(self):
         if len(self.node.paragraphs) > 0:
@@ -56,28 +57,39 @@ class WordExcelSyncer:
         self._xls_managers = {}
         self._word_manager = None
 
-    def sync_files(self, doc_path : str, xls_file_paths : List[str]) -> Generator[Mismatch, str, None]:
+    def sync_files(self, doc_path : str, xls_file_paths : List[str], progress_var=None) -> Generator[Mismatch, str, None]:
         """
         Sync descriptions between a word document and excel file. Also allows syncing of
         mismatched component names in headers. 
         """
         self._word_manager = WordFileManager(doc_path)
+        mappings = parse_mappings(self._word_manager.doc)
+        descriptions = list(get_descriptions(self._word_manager.doc))
+        num_descriptions = len(descriptions)
 
-        for desc in get_descriptions(self._word_manager.doc):
+        for i, desc in enumerate(descriptions):
             description = _WordDescription(desc)
 
-            xls_path = get_xls_from_component_id(description.process_type, xls_file_paths)
+            try:
+                component_id = mappings[description.process_type][description.component_name]
+            except KeyError:
+                continue # Trying to find a component id for non-process-type, skip iteration
+
+            xls_path = get_xls_from_component_id(component_id, xls_file_paths)
             if xls_path is None:
+                print(f"Could not find excel file for {component_id}")
                 continue # Skip iteration if no matching xls file is found
             
             xls_manager = self._parse_excel(xls_path)
-            components = parse_components_cached(xls_manager.xls)
-            best_matching_component = yield from self._find_best_component_match(description, components)
 
-            if best_matching_component is None:
-                continue
-            
-            yield from self._set_descriptions(description, best_matching_component, xls_manager.wb)
+            try:
+                component = get_component_by_id(xls_manager.xls, component_id)
+                yield from self._set_descriptions(description, component, xls_manager.wb)
+            except ValueError:
+                print(f"Could not parse component for {component_id}")
+
+            if progress_var:
+                progress_var.set((i+1) / num_descriptions)
 
     def save_files(self):
         if self._word_manager is not None:

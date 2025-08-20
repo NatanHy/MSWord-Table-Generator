@@ -4,7 +4,15 @@ import customtkinter as ctk
 from customtkinter import ThemeManager, BOTTOM, RIGHT
 from PIL import Image
 
-from gui import Tk, OnHover, SelectedFilesHandler, FrameManager, MismatchContainer, PopUpWindow
+from gui import (
+    Tk, 
+    OnHover, 
+    SelectedFilesHandler, 
+    FrameManager, 
+    MismatchContainer, 
+    PopUpWindow,
+    ProgressBar
+    )
 from word_sync import WordExcelSyncer
 from utils.gui_utils import (
     open_folder, 
@@ -19,7 +27,7 @@ RES_X = 720
 RES_Y = round(RES_X * ASPECT_RATIO)
 RESOLUTION = f"{RES_X}x{RES_Y}"
 
-FRAME_0_KW = FRAME_1_KW = {"fill":"both", "expand":True}
+FRAME_0_KW = FRAME_1_KW = {"fill":"both", "expand":True, "pady":0}
 FRAME_KWARGS = {0:FRAME_0_KW, 1:FRAME_1_KW}
 
 sync_done = False
@@ -60,7 +68,7 @@ def sync():
         xls_paths = list(excel_file_handler.selected_file_paths)
         frame_manager.go_to_frame(1)
         frame_manager.frames[frame_manager.current_frame].update_idletasks()
-        gen = file_syncer.sync_files(doc_path, xls_paths)
+        gen = file_syncer.sync_files(doc_path, xls_paths, progress_var=progress_var)
 
         # Set WM_DELETE_WINDOW protocol to break the while loop
         def stop_loop():
@@ -194,6 +202,9 @@ if __name__ == "__main__":
 
     mismatch_container = MismatchContainer(syncing_frame)
 
+    progress_var = ctk.DoubleVar(value=0.0)
+    progress_bar = ProgressBar(syncing_frame, progress_var, fg_color="transparent")
+
     # Button for saving synced files
     save_button = ctk.CTkButton(
         syncing_frame,
@@ -209,24 +220,29 @@ if __name__ == "__main__":
     # Placing UI elements and inner containers
     #==================================================
 
-    header_frame.pack(expand="True", fill="x")
-    backup_button.pack(side=RIGHT, padx=5, pady=(5, 0))
-    theme_change_button.pack(side=RIGHT, padx=5, pady=(5, 0))
+    header_frame.pack(fill="x", anchor="n", pady=0)
+    backup_button.pack(side=RIGHT, anchor="n", padx=5, pady=(5, 0))
+    theme_change_button.pack(side=RIGHT, anchor="n", padx=5, pady=(5, 0))
 
     selection_frame.pack(**FRAME_0_KW)
     selection_frame.grid_columnconfigure((0, 1), weight=1)
-    selection_frame.grid_rowconfigure((0, 1, 3), weight=0)
-    selection_frame.grid_rowconfigure(2, weight=1) # Only let the file display expand
+    selection_frame.grid_rowconfigure((0, 2), weight=0)
+    selection_frame.grid_rowconfigure(1, weight=1) # Only let the file display expand
 
+    select_word_button.grid(row=0, column=0, sticky="new", padx=5, pady=5)
+    select_excel_button.grid(row=0, column=1, sticky="new", padx=5, pady=5)
+    word_file_handler.ui.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
+    excel_file_handler.ui.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
+    sync_button.grid(row=2, column=1, sticky="nse", padx=5, pady=(5, 10))
 
-    select_word_button.grid(row=1, column=0, sticky="ew", padx=5, pady=5)
-    select_excel_button.grid(row=1, column=1, sticky="ew", padx=5, pady=5)
-    word_file_handler.ui.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
-    excel_file_handler.ui.grid(row=2, column=1, sticky="nsew", padx=5, pady=5)
-    sync_button.grid(row=3, column=1, sticky="nse", padx=5, pady=(5, 10))
+    syncing_frame.grid_columnconfigure(0, weight=1)
+    syncing_frame.grid_columnconfigure(1, weight=0)
+    syncing_frame.grid_rowconfigure(0, weight=1)
+    syncing_frame.grid_rowconfigure(1, weight=0)
 
-    mismatch_container.pack(fill="both", expand=True, padx=5, pady=5)
-    save_button.pack(side=BOTTOM, anchor="e", padx=5, pady=5)
+    mismatch_container.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
+    progress_bar.grid(row=1, column=0, sticky="sew", padx=5, pady=5)
+    save_button.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
 
     root.mainloop()
 

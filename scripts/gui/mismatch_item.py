@@ -85,7 +85,8 @@ class _DifferenceFrame(ctk.CTkFrame):
         self.text_box = self._make_text_box(mismatch, text_diff_index)
         self.text_box.pack(fill="both", expand=True, padx=5, pady=5)
 
-        ctk.CTkButton(self, text=button_text, command=on_press).pack(fill="x", expand=True, padx=5, pady=5)
+        self.button = ctk.CTkButton(self, text=button_text, command=on_press)
+        self.button.pack(fill="x", expand=True, padx=5, pady=5)
 
     def _make_text_box(self, mismatch : Mismatch, indx : int) -> MultiPartTextBox:
         substrings = _diff_words(mismatch.in_word, mismatch.in_excel)
@@ -168,25 +169,25 @@ class _MismatchItem(ctk.CTkFrame):
             ).grid(row=1, column=0, columnspan=2, padx=5, pady=(0, 3), sticky="nw")
 
         if int(mismatch.similarity) != 100:
-            w_frame = _DifferenceFrame(
+            self.w_frame = _DifferenceFrame(
                 self, 
                 mismatch=mismatch,
                 file_type="word",
                 on_press=self._button_cmd("w"),
                 corner_radius=2
                 )
-            e_frame = _DifferenceFrame(
+            self.e_frame = _DifferenceFrame(
                 self, 
                 mismatch=mismatch,
                 file_type="excel",
                 on_press=self._button_cmd("e"),
                 corner_radius=2
                 )
-            skip_button = ctk.CTkButton(self, text="Skip", command=self._button_cmd("s"))
+            self.skip_button = ctk.CTkButton(self, text="Skip", command=self._button_cmd("s"))
 
-            w_frame.grid(row=2, column=0, padx=5, pady=(5, 0), sticky="nsew")
-            e_frame.grid(row=2, column=1, padx=5, pady=(5, 0), sticky="nsew")
-            skip_button.grid(row=3, column=1, padx=5, pady=5, sticky="se")
+            self.w_frame.grid(row=2, column=0, padx=5, pady=(5, 0), sticky="nsew")
+            self.e_frame.grid(row=2, column=1, padx=5, pady=(5, 0), sticky="nsew")
+            self.skip_button.grid(row=3, column=1, padx=5, pady=5, sticky="se")
 
     def get_choice(self):
         """Block until a choice is made and return it."""
@@ -211,7 +212,12 @@ class MismatchContainer(ctk.CTkScrollableFrame):
     def add_mismatch(self, mismatch : Mismatch, **kwargs):
 
         def on_resolve(mismatch_item : _MismatchItem):
-            pass
+            try:
+                mismatch_item.skip_button.grid_forget()
+                mismatch_item.w_frame.grid_forget()
+                mismatch_item.e_frame.grid_forget()
+            except:
+                pass
             
         mismatch_item = _MismatchItem(
             self, 

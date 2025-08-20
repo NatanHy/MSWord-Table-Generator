@@ -9,6 +9,7 @@ from .on_hover import OnHover
 from .frame_manager import FrameManager
 from .multi_part_label import MultiPartLabel, MultiPartTextBox
 from .mismatch_item import MismatchContainer
+from .progess_bar import ProgressBar
 
 __all__ = [
     "CollapsibleFrame", 
@@ -22,5 +23,6 @@ __all__ = [
     "FrameManager",
     "MultiPartLabel",
     "MultiPartTextBox",
-    "MismatchContainer"
+    "MismatchContainer",
+    "ProgressBar"
     ]

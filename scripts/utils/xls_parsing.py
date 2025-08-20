@@ -61,10 +61,13 @@ def get_component_by_id(xls : pd.ExcelFile, id : str) -> Component:
     filtered_by_id = get_filtered_by_id(xls)
     row = filtered_by_id[filtered_by_id.iloc[:, 0] == id]
 
-    c_id = row["SKB FEP ID"].iloc[0]
-    name = row["FEP Name"].iloc[0]
-    system_component = row["System Component"].iloc[0]
-    return Component(xls, c_id, name, system_component)
+    try:
+        c_id = row["SKB FEP ID"].iloc[0]
+        name = row["FEP Name"].iloc[0]
+        system_component = row["System Component"].iloc[0]
+        return Component(xls, c_id, name, system_component)
+    except:
+        raise ValueError("Invalid component ID")
 
 def parse_components(xls : pd.ExcelFile) -> List[Component]:
     """

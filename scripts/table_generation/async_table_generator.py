@@ -198,5 +198,3 @@ class AsyncTableGenerator:
             component_element = _ComponentElement(component, para) #type: ignore
             filtered_components.append(component_element)
         return filtered_components, variables
-
-        
