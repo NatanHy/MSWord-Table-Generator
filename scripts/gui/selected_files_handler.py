@@ -1,4 +1,5 @@
 from typing import Iterable
+
 from gui.file_item import FileItem
 import customtkinter as ctk
 from tkinterdnd2 import DND_ALL

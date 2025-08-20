@@ -1,9 +1,11 @@
+from typing import Callable
+
 import customtkinter as ctk
-from gui import MultiPartLabel, MultiPartTextBox
+from PIL import Image
+
+from gui import MultiPartTextBox
 from word_sync.sync_files import Mismatch
 from utils.gui_utils import blend_colors, get_color
-from typing import Callable
-from PIL import Image
 
 def _get_similarity_color(similarity: float) -> str:
     """
@@ -58,7 +60,7 @@ def _diff_words(a: str, b: str):
 
     return result
 
-class DifferenceFrame(ctk.CTkFrame):
+class _DifferenceFrame(ctk.CTkFrame):
     def __init__(self, master, mismatch : Mismatch, file_type, on_press, **kwargs):
         super().__init__(master, **kwargs)
 
@@ -104,12 +106,12 @@ class DifferenceFrame(ctk.CTkFrame):
         
         return MultiPartTextBox(self, parts, height=70)
 
-class MismatchItem(ctk.CTkFrame):
+class _MismatchItem(ctk.CTkFrame):
     def __init__(
             self, 
             master, 
             mismatch : Mismatch, 
-            on_resolve : Callable[['MismatchItem'], None] | None = None,
+            on_resolve : Callable[['_MismatchItem'], None] | None = None,
             **kwargs
             ):
         super().__init__(master, **kwargs)
@@ -158,23 +160,22 @@ class MismatchItem(ctk.CTkFrame):
             text_color=border_color
             ).grid(row=0, column=1, padx=5, pady=(5, 3), sticky="ne")
         
-        header_text = mismatch.header if mismatch.mismatch_type == "description" else ""
         ctk.CTkLabel(
             self, 
-            text=f"in {header_text}",
+            text=f"in {mismatch.header}",
             font=font,
             text_color=border_color
             ).grid(row=1, column=0, columnspan=2, padx=5, pady=(0, 3), sticky="nw")
 
         if int(mismatch.similarity) != 100:
-            w_frame = DifferenceFrame(
+            w_frame = _DifferenceFrame(
                 self, 
                 mismatch=mismatch,
                 file_type="word",
                 on_press=self._button_cmd("w"),
                 corner_radius=2
                 )
-            e_frame = DifferenceFrame(
+            e_frame = _DifferenceFrame(
                 self, 
                 mismatch=mismatch,
                 file_type="excel",
@@ -209,10 +210,10 @@ class MismatchContainer(ctk.CTkScrollableFrame):
 
     def add_mismatch(self, mismatch : Mismatch, **kwargs):
 
-        def on_resolve(mismatch_item : MismatchItem):
+        def on_resolve(mismatch_item : _MismatchItem):
             pass
             
-        mismatch_item = MismatchItem(
+        mismatch_item = _MismatchItem(
             self, 
             mismatch,
             on_resolve=on_resolve,

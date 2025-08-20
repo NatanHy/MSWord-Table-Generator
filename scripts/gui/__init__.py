@@ -8,6 +8,7 @@ from .tk import Tk
 from .on_hover import OnHover
 from .frame_manager import FrameManager
 from .multi_part_label import MultiPartLabel, MultiPartTextBox
+from .mismatch_item import MismatchContainer
 
 __all__ = [
     "CollapsibleFrame", 
@@ -20,5 +21,6 @@ __all__ = [
     "OnHover", 
     "FrameManager",
     "MultiPartLabel",
-    "MultiPartTextBox"
+    "MultiPartTextBox",
+    "MismatchContainer"
     ]

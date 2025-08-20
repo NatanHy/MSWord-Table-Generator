@@ -1,16 +1,35 @@
+import os
+import queue
+import sys
+from typing import List
+
 import customtkinter as ctk
-from gui import *
-from utils.gui_utils import *
-from utils.redirect_manager import redirect_stdout_to
-from utils.files import create_backup
-from tkinterdnd2 import DND_ALL
-from table_generation.table import TableCollection
-from table_generation.async_table_generator import AsyncTableGenerator
-from PIL import Image
-import os, sys, queue
+from customtkinter import LEFT, TOP, ThemeManager
 from docx import Document
 import docx.document
-from typing import List
+from PIL import Image
+
+from gui import (
+    CollapsibleFrame, 
+    DnDBox, 
+    PopUpWindow, 
+    SelectedFilesHandler, 
+    TextboxRedirector, 
+    Tk, 
+    OnHover, 
+    FrameManager
+    )
+from table_generation.table import TableCollection
+from table_generation.async_table_generator import AsyncTableGenerator
+from utils.gui_utils import (
+    disable_button, 
+    open_folder, 
+    wrong_files_popup, 
+    color_filter, 
+    disable_button_while
+    )
+from utils.redirect_manager import redirect_stdout_to
+from utils.files import create_backup
 
 ASPECT_RATIO = 9 / 16
 RES_X = 720

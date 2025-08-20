@@ -1,7 +1,7 @@
-from tkinterdnd2 import TkinterDnD, DND_ALL
 import customtkinter as ctk
+from customtkinter import TOP, BOTTOM
 from PIL import Image
-from tkinter import TOP, BOTTOM, CENTER
+from tkinterdnd2 import TkinterDnD, DND_ALL
 
 class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
     def __init__(self, *args, **kwargs):

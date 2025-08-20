@@ -1,10 +1,12 @@
-import pandas as pd
-import openpyxl
+from functools import cache
 from typing import List, Dict, Iterable
+
+import openpyxl
+import pandas as pd
+
 from table_generation import Component
 from utils.dataframes import make_first_row_headers
 from utils.caching import cache_on_attr
-from functools import cache
 
 @cache
 def parse_excel_cached(xls_path : str) -> pd.ExcelFile:

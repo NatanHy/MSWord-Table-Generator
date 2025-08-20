@@ -1,19 +1,26 @@
-import pandas as pd
+import queue
+import sys
+import threading
+import time
+from typing import Iterable, Dict, Tuple, List
+
 from docx import Document
 import docx.document
-from typing import Iterable, Dict, Tuple
+from docx.text.paragraph import Paragraph
+import pandas as pd
+
 from config import DSL_FILE_PATH
 from table_generation.table_generator import generate_table_in_document
-from word_sync.heading_tree import build_heading_tree
 from table_generation.table import TableCollection
-import time, queue, sys, threading
+from table_generation.component import Component
+from word_sync.heading_tree import build_heading_tree
 from utils.redirect_manager import redirect_stdout_to
-from utils.xls_parsing import *
 from utils.formatting import copy_document_styles
 from utils.xml import remove_table_after_heading, delete_paragraph
-from docx.text.paragraph import Paragraph
+from utils.xls_parsing import parse_components, parse_variables, get_xls_from_process_type, parse_excel_cached
 
 class _ComponentElement:
+    
     """
     Wrapper class to encapsulate a Component and the oxml element where this component should
     be placed in a word file.

@@ -1,6 +1,7 @@
+from typing import Tuple, Any
+
 from openpyxl.utils import column_index_from_string
 import pandas as pd
-from typing import Tuple, Any
 
 def make_first_row_headers(df) -> pd.DataFrame:
     # Promote first row to header

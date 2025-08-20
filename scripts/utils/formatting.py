@@ -1,12 +1,13 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+import docx.document
 from docx import Document
 from docx.shared import Cm, Pt # Pt import needed so it can be used by the eval when applpying styling
-import docx.document
-from config.document_config import * # Constants
-from utils.xml import insert_multilevel_table_caption, clear_document, insert_paragraph_after
-from typing import TYPE_CHECKING
 from docx.table import _Cell
 from docx.text.paragraph import Paragraph
+
+from config.document_config import TABLE_HEADING_STYLE, LEFT_MARGIN, RIGHT_MARGIN
+from utils.xml import insert_multilevel_table_caption, clear_document, insert_paragraph_after
 if TYPE_CHECKING:
     from table_generation.fixed_table import FixedTable
     from table_generation import Component

@@ -1,12 +1,12 @@
+from typing import Tuple, Dict, List
+
+from docx.table import _Cell
+import docx.document
+
 from table_generation.component import Component
 from table_generation.fixed_table import FixedTable
 from table_generation.parser import Parser
-from typing import Tuple, Dict, List
-from docx import Document
-from docx.table import _Cell
-import docx.document
 from utils.formatting import format_raw_value, style, format_table, add_table_heading
-import time
 
 def _get_col_sequences(table : FixedTable, col : int, force_cutoffs) -> List[Tuple[_Cell, _Cell]]:
     start = 0

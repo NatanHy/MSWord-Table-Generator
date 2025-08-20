@@ -1,9 +1,11 @@
-from docx.text.paragraph import Paragraph
-from docx.table import Table
-import docx.document
-from utils.xml import *
 from typing import List, Iterator, Callable
 import re
+
+import docx.document
+from docx.text.paragraph import Paragraph
+from docx.table import Table
+
+from utils.xml import insert_paragraph_after
 
 def _iter_block_items(parent) -> Iterator[Paragraph | Table]:
     """
@@ -86,6 +88,8 @@ class HeadingTree:
                 para = insert_paragraph_after(self.heading, style=style)
                 self.paragraphs.append(para)
                 return para
+            else:
+                raise RuntimeError("Cannot get paragraph of node because heading is None")
 
 def _get_heading_level(style_name: str) -> int | None:
     """Extract heading level from style name, e.g., 'Heading 2' -> 2."""

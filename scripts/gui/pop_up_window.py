@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from tkinter import LEFT, RIGHT
+from customtkinter import LEFT, RIGHT
 
 class PopUpWindow(ctk.CTkToplevel):
     def __init__(self, master, title, text, width=300, height=120):

@@ -1,5 +1,4 @@
 import customtkinter as ctk
-import tkinter as tk
 
 class OnHover:
     def __init__(self, widget, tooltip_text="", hover_bg=None, normal_bg=None, delay=500):

@@ -2,6 +2,7 @@ from docx.table import _Cell, Table
 from docx.document import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+
 from utils.xml import insert_table_after
 
 class FixedTable(Table):

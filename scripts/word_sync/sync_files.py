@@ -1,15 +1,22 @@
+from os import fspath
+from typing import List, Iterator, Generator
+from dataclasses import dataclass
+
 import openpyxl
 import docx.document
-import re
-from .heading_tree import HeadingTree, build_heading_tree
-from typing import List, Iterator, Generator
-from table_generation import Component
-from utils.xls_parsing import parse_components_cached, get_description, set_description, set_component_name, get_xls_from_process_type
-from utils.xml import insert_paragraph_after
 from rapidfuzz import process, fuzz
+
+from .heading_tree import HeadingTree, build_heading_tree
 from .file_manager import WordFileManager, ExcelFileManager
-from os import fspath
-from dataclasses import dataclass
+from table_generation import Component
+from utils.xls_parsing import (
+    parse_components_cached, 
+    get_description,
+    set_description, 
+    set_component_name, 
+    get_xls_from_process_type
+    )
+from utils.xml import insert_paragraph_after
 
 def get_descriptions(doc : docx.document.Document) -> Iterator[HeadingTree]:
     root = build_heading_tree(doc)
@@ -137,7 +144,7 @@ class WordExcelSyncer:
 
     def _handle_component_mismatch(self, description : _WordDescription, component : Component, similarity) -> Generator[Mismatch, str, Component | None]:
         while True:
-            choice = yield Mismatch("component", similarity, description.process_type, description.component_name, component.name)
+            choice = yield Mismatch("FEP Name", similarity, description.process_type, description.component_name, component.name)
             match choice:
                 case "w":
                     self._set_headings(description, component, description.component_name)

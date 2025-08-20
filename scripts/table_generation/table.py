@@ -1,6 +1,7 @@
-from docx.document import Document
 from dataclasses import dataclass
 import os
+
+from docx.document import Document
 
 @dataclass
 class TableCollection:

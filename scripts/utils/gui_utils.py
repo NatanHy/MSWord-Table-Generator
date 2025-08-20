@@ -1,17 +1,23 @@
-from customtkinter import ThemeManager, CTkButton, CTkBaseClass, LEFT, RIGHT, TOP, BOTTOM
-from PIL import ImageOps, Image
-import platform, os
+import os
+import platform
+from typing import Callable, List, TYPE_CHECKING
+
 import customtkinter as ctk
-from typing import Callable, List
-from gui import SelectedFilesHandler, PopUpWindow
+from customtkinter import ThemeManager, CTkButton, CTkBaseClass, LEFT, RIGHT
+from PIL import ImageOps, Image
+
+if TYPE_CHECKING:
+    from gui import SelectedFilesHandler, PopUpWindow
 
 def wrong_files_popup(root, err_message):
+    from gui import PopUpWindow
+    
     def f(file_handler : 'SelectedFilesHandler', file_paths : List[str]):
         popup_win = PopUpWindow(root, "Wrong file type", err_message)
         return _show_wrong_file_popup(popup_win, file_handler, file_paths)
     return f
 
-def _show_wrong_file_popup(popup_win : 'PopUpWindow', file_handler : 'SelectedFilesHandler', file_paths : List[str]):
+def _show_wrong_file_popup(popup_win : PopUpWindow, file_handler : SelectedFilesHandler, file_paths : List[str]):
     def add_anyway():
         prev_filter = file_handler.filter
         file_handler.filter = lambda s: True # Disable filter

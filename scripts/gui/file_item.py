@@ -1,5 +1,6 @@
-import customtkinter as ctk
 import os
+
+import customtkinter as ctk
 
 class FileItem(ctk.CTkFrame):
     def __init__(self, master, file_path, on_remove):

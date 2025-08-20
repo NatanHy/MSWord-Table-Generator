@@ -1,10 +1,12 @@
-import customtkinter as ctk
-from utils.gui_utils import *
-from gui import Tk, OnHover, SelectedFilesHandler, FrameManager
-from gui.mismatch_item import MismatchContainer
-from PIL import Image
-from word_sync import WordExcelSyncer
 import os
+
+import customtkinter as ctk
+from customtkinter import ThemeManager, BOTTOM
+from PIL import Image
+
+from gui import Tk, OnHover, SelectedFilesHandler, FrameManager, MismatchContainer, PopUpWindow
+from word_sync import WordExcelSyncer
+from utils.gui_utils import open_folder, wrong_files_popup, color_filter, disable_button_while
 
 ASPECT_RATIO = 9 / 16
 RES_X = 720
