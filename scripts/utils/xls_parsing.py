@@ -57,6 +57,15 @@ def parse_components_cached(xls_file : pd.ExcelFile) -> List[Component]:
 def parse_variables_cached(xls_file : pd.ExcelFile) -> Dict[str, str]:
     return parse_variables(xls_file)
 
+def get_component_by_id(xls : pd.ExcelFile, id : str) -> Component:
+    filtered_by_id = get_filtered_by_id(xls)
+    row = filtered_by_id[filtered_by_id.iloc[:, 0] == id]
+
+    c_id = row["SKB FEP ID"].iloc[0]
+    name = row["FEP Name"].iloc[0]
+    system_component = row["System Component"].iloc[0]
+    return Component(xls, c_id, name, system_component)
+
 def parse_components(xls : pd.ExcelFile) -> List[Component]:
     """
     Parse Component info from the PSAR SKF FEP list sheet of the excel file. 
@@ -100,12 +109,13 @@ def parse_variables(xls : pd.ExcelFile) -> Dict[str, str]:
 
     return variables
 
-def get_xls_from_process_type(process_type : str, xls_files : Iterable[str]) -> str | None: 
+def get_xls_from_component_id(component_id : str, xls_files : Iterable[str]) -> str | None: 
     #TODO
-    match process_type.strip():
-        case "Fuel processes":
+    process_prefix = component_id[0]
+    match process_prefix :
+        case "F":
             pth = "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052141 - SFK FEP-katalog för FSAR - Fuel_v0.10.xlsx"
-        case "Canister processes":
+        case "C":
             pth = "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052142 - SFK FEP-katalog för FSAR - Canister_v0.4.xlsx"
         case _:
             return None

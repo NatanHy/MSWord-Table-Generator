@@ -1,9 +1,10 @@
-from typing import cast, Union
+from typing import cast, Union, Dict
 
+import docx.document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.oxml.table import CT_Tbl
-from docx.table import Table
+from docx.table import Table, _Cell
 from docx.text.paragraph import Paragraph
 
 BlockItem = Union[Paragraph, Table]
@@ -16,21 +17,6 @@ def delete_paragraph(paragraph):
     parent = p.getparent()
     parent.remove(p)
 
-
-def _remove_immediate_table_after_paragraph(paragraph):
-    """
-    Removes the table immediately following the given paragraph,
-    if and only if the very next block item is a table.
-    """
-    p_element = paragraph._element
-    next_element = p_element.getnext()
-
-    if next_element is not None and next_element.tag.endswith('tbl'):
-        parent = next_element.getparent()
-        parent.remove(next_element)
-        return True  # Removed
-    return False  # Nothing removed
-
 def remove_table_after_heading(doc, heading_text):
     """
     Finds a heading by text, then removes the immediate table after it
@@ -40,6 +26,7 @@ def remove_table_after_heading(doc, heading_text):
         if paragraph.text.strip() == heading_text:
             return _remove_immediate_table_after_paragraph(paragraph)
     return False
+
 def insert_table_after(rows : int, cols : int, insert_after) -> Table:
     # Create the table (in memory, detached)
     tbl = OxmlElement('w:tbl')
@@ -160,3 +147,89 @@ def insert_multilevel_table_caption(paragraph, table_text):
     r_seq._r.append(fldChar3_seq)
 
     paragraph.add_run(f" {table_text}")
+
+def parse_mappings(doc) -> Dict[str, Dict[str, str]]:
+    mappings = {}
+
+    for heading, tbl in _get_first_table_per_heading(doc):
+        try:
+            mapping = _parse_mapping_table(tbl)
+            mappings[heading.text.strip()] = mapping
+        except ValueError:
+            pass
+
+    return mappings
+
+def _parse_mapping_table(tbl : Table) -> Dict[str, str]:
+    # Check that the header matches the template
+    mapping_header = {
+        (0, 0): "This report",
+        (0, 2): "FSAR FEP catalogue",
+        (1, 0): "Section",
+        (1, 1): "Process name",
+        (1, 2): "FEP ID",
+        (1, 3): "FEP Name"
+    }
+    for indx, s in mapping_header.items():
+        if tbl.rows[indx[0]].cells[indx[1]].text.strip() != s:
+            raise ValueError("Table is not a mapping table")
+    
+    # Map column 1 to column 2
+    mapping = {c1.text.strip() : c2.text.strip() for c1, c2 in zip(tbl.column_cells(1), tbl.column_cells(2))}
+
+    # Remove mapping of header
+    mapping.pop("This report")
+    mapping.pop("Process name")
+
+    return mapping
+
+def _get_first_table_per_heading(doc):
+    heading = None
+    prev_heading = None
+
+    for block in _iter_block_items(doc):
+        if isinstance(block, Paragraph):
+            style_name = block.style.name #type: ignore
+            if style_name.startswith("Heading"): #type: ignore
+                # Extract the level number
+                level = int(style_name.split(" ")[1]) #type: ignore
+                if level == 1:
+                    heading = block
+                    continue
+                
+        elif isinstance(block, Table):
+            if heading and heading is not prev_heading:
+                prev_heading = heading
+                yield (heading, block)
+
+def _iter_block_items(parent):
+    """
+    Yield paragraphs and tables in document order.
+    `parent` can be a Document object or a _Cell object.
+    """
+    if isinstance(parent, docx.document.Document):
+        parent_elm = parent.element.body
+    elif isinstance(parent, _Cell):
+        parent_elm = parent._tc
+    else:
+        raise ValueError("Unsupported parent type")
+
+    for child in parent_elm.iterchildren():
+        if child.tag.endswith('}p'):  # Paragraph
+            yield Paragraph(child, parent)
+        elif child.tag.endswith('}tbl'):  # Table
+            yield Table(child, parent)
+
+def _remove_immediate_table_after_paragraph(paragraph):
+    """
+    Removes the table immediately following the given paragraph,
+    if and only if the very next block item is a table.
+    """
+    p_element = paragraph._element
+    next_element = p_element.getnext()
+
+    if next_element is not None and next_element.tag.endswith('tbl'):
+        parent = next_element.getparent()
+        parent.remove(next_element)
+        return True  # Removed
+    return False  # Nothing removed

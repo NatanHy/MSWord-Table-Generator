@@ -14,7 +14,7 @@ from utils.xls_parsing import (
     get_description,
     set_description, 
     set_component_name, 
-    get_xls_from_process_type
+    get_xls_from_component_id
     )
 from utils.xml import insert_paragraph_after
 
@@ -66,7 +66,7 @@ class WordExcelSyncer:
         for desc in get_descriptions(self._word_manager.doc):
             description = _WordDescription(desc)
 
-            xls_path = get_xls_from_process_type(description.process_type, xls_file_paths)
+            xls_path = get_xls_from_component_id(description.process_type, xls_file_paths)
             if xls_path is None:
                 continue # Skip iteration if no matching xls file is found
             

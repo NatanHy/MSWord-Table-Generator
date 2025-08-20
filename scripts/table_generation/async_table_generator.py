@@ -16,13 +16,19 @@ from table_generation.component import Component
 from word_sync.heading_tree import build_heading_tree
 from utils.redirect_manager import redirect_stdout_to
 from utils.formatting import copy_document_styles
-from utils.xml import remove_table_after_heading, delete_paragraph
-from utils.xls_parsing import parse_components, parse_variables, get_xls_from_process_type, parse_excel_cached
+from utils.xml import remove_table_after_heading, delete_paragraph, parse_mappings
+from utils.xls_parsing import (
+    parse_components, 
+    parse_variables,
+    get_xls_from_component_id, 
+    parse_excel_cached, 
+    get_component_by_id
+    )
 
 class _ComponentElement:
     
     """
-    Wrapper class to encapsulate a Component and the oxml element where this component should
+    Wrapper class to encapsulate a Component and the paragraph where this component should
     be placed in a word file.
     """
     def __init__(self, component : Component, paragraph : Paragraph):
@@ -155,41 +161,42 @@ class AsyncTableGenerator:
         Parse a word document for table insertion.
         """
         root = build_heading_tree(doc)
+        mappings = parse_mappings(doc)
         # Headings under which the tables should be generated
         headings = root.filter(lambda node: node.heading is not None and node.heading.text == "Dependencies between processes and variables")
         
-        parsed_components = {}
-        variables = {}
+        parsed_paths = {} # Cache parsed xls files
+        variables = {}    # Variable names
 
         filtered_components = []
         for heading in headings:
             # process type used to find correct excel file
-            process_type = heading.get_parent_heading_absolute(1).text #type: ignore
+            process_type = heading.get_parent_heading_absolute(1).text.strip() #type: ignore
             # component name used to find correct component in excel file
-            component_name = heading.get_parent_heading_relative(1).text #type: ignore
+            component_name = heading.get_parent_heading_relative(1).text.strip() #type: ignore
 
-            # Ignore process type if it is not defined in the document
-            if (xls_path := get_xls_from_process_type(process_type, xls_paths)) is None:
+            # Use parsed mapping to find the component id
+            component_id = mappings[process_type][component_name]
+
+            # Ignore component if it is not defined in the excel files
+            if (xls_path := get_xls_from_component_id(component_id, xls_paths)) is None:
+                print(f"    Could not find {component_id} in the proved excel files, skipping")
                 continue
-
-            # Use cahced components
-            if xls_path in parsed_components:
-                components = parsed_components[xls_path]
-            else:
-                # Parse components and variables for unseen file
-                xls_file = parse_excel_cached(xls_path)
-
-                components = parse_components(xls_file)
-                for k, v in parse_variables(xls_file).items():
-                    variables[k] = v
             
-            for c in components:
-                if c.name == component_name:
-                    para = heading.get_or_insert_paragraph(-1)
-                    component_element = _ComponentElement(c, para) #type: ignore
-                    filtered_components.append(component_element)
-                    break
-        
+            # Parse variable descriptions for new xls paths
+            if xls_path in parsed_paths:
+                xls_file = parsed_paths[xls_path]
+            else:
+                xls_file = parse_excel_cached(xls_path)
+                parsed_paths[xls_path] = xls_file
+                for k, v in parse_variables(xls_file).items():
+                    variables[k] = v # Add variable names
+
+            component = get_component_by_id(xls_file, component_id)
+
+            para = heading.get_or_insert_paragraph(-1)
+            component_element = _ComponentElement(component, para) #type: ignore
+            filtered_components.append(component_element)
         return filtered_components, variables
 
         
