@@ -112,15 +112,15 @@ def parse_variables(xls : pd.ExcelFile) -> Dict[str, str]:
 
     return variables
 
+@cache
+def _xls_matches_prefix(prefix: str, xls_file_path : str) -> bool:
+    wb = openpyxl.load_workbook(xls_file_path, data_only=True, read_only=True)
+    ws = wb["PSAR SFK FEP list"]
+    return ws["B8"].value == prefix
+
 def get_xls_from_component_id(component_id : str, xls_files : Iterable[str]) -> str | None: 
-    #TODO
     process_prefix = component_id[0]
-    match process_prefix :
-        case "F":
-            pth = "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052141 - SFK FEP-katalog för FSAR - Fuel_v0.10.xlsx"
-        case "C":
-            pth = "C:/Users/natih/OneDrive/Documents/code/python code/FEP-MSWord-Table-Generator/test/2052142 - SFK FEP-katalog för FSAR - Canister_v0.4.xlsx"
-        case _:
-            return None
-    if pth in xls_files:
-        return pth
+
+    for pth in xls_files:
+        if _xls_matches_prefix(process_prefix, pth):
+            return pth
