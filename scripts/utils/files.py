@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 from datetime import datetime
 import glob
 
@@ -51,3 +52,8 @@ def create_backup(file_path, backup_dir="backups", max_backups=2):
         print(f"Old backup deleted: {old_backup}")
 
     return backup_path
+
+def resource_path(relative_path):
+    """Return absolute path to resource, works in dev and PyInstaller exe"""
+    base_path = getattr(sys, "_MEIPASS", os.path.abspath("."))
+    return os.path.join(base_path, relative_path)

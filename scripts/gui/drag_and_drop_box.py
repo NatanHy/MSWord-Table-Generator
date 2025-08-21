@@ -2,6 +2,7 @@ import customtkinter as ctk
 from customtkinter import TOP, BOTTOM
 from PIL import Image
 from tkinterdnd2 import TkinterDnD, DND_ALL
+from utils.files import resource_path
 
 class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
     def __init__(self, *args, **kwargs):
@@ -9,7 +10,11 @@ class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
         self.TkdndVersion = TkinterDnD._require(self)
 
 class DnDBox:
-    dnd_icon = ctk.CTkImage(dark_image=Image.open("resources/dnd_white.png"), light_image=Image.open("resources/dnd_black.png"), size=(20, 20))
+    dnd_icon = ctk.CTkImage(
+        dark_image=Image.open(resource_path("resources/dnd_white.png")), 
+        light_image=Image.open(resource_path("resources/dnd_black.png")), 
+        size=(20, 20)
+        )
 
     def __init__(self, master, on_drop, on_select):
         self.master = master

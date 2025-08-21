@@ -21,6 +21,7 @@ from utils.gui_utils import (
     disable_button_while, 
     switch_theme
     )
+from utils.files import resource_path
 
 ASPECT_RATIO = 9 / 16
 RES_X = 720
@@ -113,6 +114,9 @@ if __name__ == "__main__":
         )
     file_syncer = WordExcelSyncer()
 
+    if not os.path.exists("backups"):
+        os.makedirs("backups", exist_ok=True)
+
     #==================================================
     # Defining UI elements and inner containers
     #==================================================
@@ -130,7 +134,7 @@ if __name__ == "__main__":
     )
     
     # Backup button
-    white_image = Image.open("resources/back_up_white.png")
+    white_image = Image.open(resource_path("resources/back_up_white.png"))
     colored_image = color_filter(white_image, ThemeManager.theme["CTkButton"]["fg_color"])
     backup_img = ctk.CTkImage(light_image=colored_image, size=(20, 20))
     
@@ -148,9 +152,9 @@ if __name__ == "__main__":
     _hover = OnHover(backup_button, "Open backups folder")
 
     # Button for changing Light/Dark theme
-    sun = Image.open("resources/sun.png")
+    sun = Image.open(resource_path("resources/sun.png"))
     colored_sun_image = color_filter(sun, ThemeManager.theme["CTkButton"]["fg_color"])
-    moon = Image.open("resources/moon.png")
+    moon = Image.open(resource_path("resources/moon.png"))
     colored_moon_image = color_filter(moon, ThemeManager.theme["CTkButton"]["fg_color"])
     theme_change_img = ctk.CTkImage(light_image=colored_moon_image, dark_image=colored_sun_image, size=(20, 20))
     
@@ -185,7 +189,7 @@ if __name__ == "__main__":
         has_files = word_file_handler.has_files and excel_file_handler.has_files
         return not has_files
     
-    sync_img = ctk.CTkImage(light_image=Image.open("resources/sync.png"), size=(40, 40)) 
+    sync_img = ctk.CTkImage(light_image=Image.open(resource_path("resources/sync.png")), size=(40, 40)) 
     sync_button = ctk.CTkButton(
         selection_frame, 
         text="Sync", 

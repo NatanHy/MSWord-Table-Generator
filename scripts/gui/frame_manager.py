@@ -1,6 +1,8 @@
 import customtkinter as ctk
 from PIL import Image
 
+from utils.files import resource_path
+
 class FrameManager:
     def __init__(
             self, 
@@ -20,7 +22,7 @@ class FrameManager:
         self.back_button_pos = back_button_pos
 
         # Store a reference to back image, otherwise it gets garbage collected
-        self._back_img = ctk.CTkImage(light_image=Image.open("resources/back_arrow_white.png"), size=(20, 20))
+        self._back_img = ctk.CTkImage(light_image=Image.open(resource_path("resources/back_arrow_white.png")), size=(20, 20))
         self.back_button = ctk.CTkButton(
             root, 
             image=self._back_img,

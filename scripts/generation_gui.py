@@ -30,7 +30,7 @@ from utils.gui_utils import (
     switch_theme
     )
 from utils.redirect_manager import redirect_stdout_to
-from utils.files import create_backup
+from utils.files import create_backup, resource_path
 
 ASPECT_RATIO = 9 / 16
 RES_X = 720
@@ -157,6 +157,9 @@ if __name__ == "__main__":
         on_wrong=wrong_files_popup(root, "Wrong file type, file must be Word file (.docx)")
         )
 
+    if not os.path.exists("backups"):
+        os.makedirs("backups", exist_ok=True)
+
     #==================================================
     # Containers (frames) for the different pages
     #==================================================
@@ -213,7 +216,7 @@ if __name__ == "__main__":
     )
     
     # Backup button
-    white_image = Image.open("resources/back_up_white.png")
+    white_image = Image.open(resource_path("resources/back_up_white.png"))
     colored_image = color_filter(white_image, ThemeManager.theme["CTkButton"]["fg_color"])
     backup_img = ctk.CTkImage(light_image=colored_image, size=(20, 20))
     
@@ -231,9 +234,9 @@ if __name__ == "__main__":
     _hover1 = OnHover(backup_button, "Open backups folder")
 
     # Button for changing Light/Dark theme
-    sun = Image.open("resources/sun.png")
+    sun = Image.open(resource_path("resources/sun.png"))
     colored_sun_image = color_filter(sun, ThemeManager.theme["CTkButton"]["fg_color"])
-    moon = Image.open("resources/moon.png")
+    moon = Image.open(resource_path("resources/moon.png"))
     colored_moon_image = color_filter(moon, ThemeManager.theme["CTkButton"]["fg_color"])
     theme_change_img = ctk.CTkImage(light_image=colored_moon_image, dark_image=colored_sun_image, size=(20, 20))
     
@@ -256,7 +259,7 @@ if __name__ == "__main__":
     excel_file_handler.ui.configure(fg_color="transparent")
     
     # Add files button
-    add_files_img = ctk.CTkImage(light_image=Image.open("resources/add_files_white.png"), size=(20, 20))
+    add_files_img = ctk.CTkImage(light_image=Image.open(resource_path("resources/add_files_white.png")), size=(20, 20))
 
     more_files_button = ctk.CTkButton(
         file_list_frame, 

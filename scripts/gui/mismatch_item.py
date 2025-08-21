@@ -3,9 +3,10 @@ from typing import Callable
 import customtkinter as ctk
 from PIL import Image
 
-from gui import MultiPartTextBox
+from gui import MultiPartTextBox, OnHover
 from word_sync.sync_files import Mismatch
 from utils.gui_utils import blend_colors, get_color
+from utils.files import resource_path
 
 def _get_similarity_color(similarity: float) -> str:
     """
@@ -66,14 +67,16 @@ class _DifferenceFrame(ctk.CTkFrame):
 
         match file_type:
             case "word":
-                icon_path = "resources/word_icon.png"
+                icon_path = resource_path("resources/word_icon.png")                
                 icon_text = " In Word"
                 button_text = "Use Word"
+                hover_text = "Overwrite all occurences with Word version"
                 text_diff_index = 0
             case "excel":
-                icon_path = "resources/excel_icon.png"
+                icon_path = resource_path("resources/excel_icon.png")
                 icon_text = " In Excel"
                 button_text = "Use Excel"
+                hover_text = "Overwrite all occurences with Excel version"
                 text_diff_index = 1
             case _:
                 raise ValueError(f"File type must be either 'word' or 'excel, found {file_type}")
@@ -87,6 +90,7 @@ class _DifferenceFrame(ctk.CTkFrame):
 
         self.button = ctk.CTkButton(self, text=button_text, command=on_press)
         self.button.pack(fill="x", expand=True, padx=5, pady=5)
+        self._hover = OnHover(self.button, hover_text)
 
     def _make_text_box(self, mismatch : Mismatch, indx : int) -> MultiPartTextBox:
         substrings = _diff_words(mismatch.in_word, mismatch.in_excel)
