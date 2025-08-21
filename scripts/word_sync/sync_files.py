@@ -10,7 +10,6 @@ from .heading_tree import HeadingTree, build_heading_tree
 from .file_manager import WordFileManager, ExcelFileManager
 from table_generation import Component
 from utils.xls_parsing import (
-    parse_components_cached, 
     get_description,
     set_description, 
     set_component_name, 

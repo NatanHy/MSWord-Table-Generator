@@ -44,9 +44,9 @@ class SelectedFilesHandler:
     def has_files(self):
         return len(self.selected_file_paths) > 0
 
-    @property
-    def first_path(self):
-        return next(iter(self.selected_file_paths))
+    def first_path(self) -> str | None:
+        if self.has_files:
+            return next(iter(self.selected_file_paths))
 
     def add_ui(self, master, **kwargs):
         self.ui = _UI(master, **kwargs)

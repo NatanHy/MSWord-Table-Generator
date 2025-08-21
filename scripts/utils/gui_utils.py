@@ -1,6 +1,6 @@
 import os
 import platform
-from typing import Callable, List, TYPE_CHECKING
+from typing import Callable, List, Tuple, TYPE_CHECKING
 
 import customtkinter as ctk
 from customtkinter import ThemeManager, CTkButton, CTkBaseClass, LEFT, RIGHT
@@ -69,12 +69,27 @@ def color_filter(img : Image.Image, clr):
 
     return colored
 
-def blend_colors(fg_hex, bg_hex, alpha):
+def blend_colors(fg_hex : str | Tuple[str, str], bg_hex : str | Tuple[str, str], alpha) -> Tuple[str, str]:
     """Blend fg_hex over bg_hex with given alpha (0.0-1.0)."""
-    fg = tuple(int(fg_hex[i:i+2], 16) for i in (1, 3, 5))
-    bg = tuple(int(bg_hex[i:i+2], 16) for i in (1, 3, 5))
-    blended = tuple(int((alpha * fg_c) + ((1 - alpha) * bg_c)) for fg_c, bg_c in zip(fg, bg))
-    return "#{:02x}{:02x}{:02x}".format(*blended)
+
+    if isinstance(fg_hex, str):
+        fg_tup = (fg_hex, fg_hex)
+    else:
+        fg_tup = fg_hex
+    if isinstance(bg_hex, str):
+        bg_tup = (bg_hex, bg_hex)
+    else:
+        bg_tup = bg_hex
+
+    hex_pairs = zip(fg_tup, bg_tup)
+    res = []
+    for pair in hex_pairs:
+        fg_h, bg_h = pair
+        fg = tuple(int(fg_h[i:i+2], 16) for i in (1, 3, 5))
+        bg = tuple(int(bg_h[i:i+2], 16) for i in (1, 3, 5))
+        blended = tuple(int((alpha * fg_c) + ((1 - alpha) * bg_c)) for fg_c, bg_c in zip(fg, bg))
+        res.append("#{:02x}{:02x}{:02x}".format(*blended))
+    return (res[0], res[1])
 
 def _to_hex(widget, color: str) -> str:
     r, g, b = widget.winfo_rgb(color)
@@ -85,12 +100,11 @@ def _normalize_color(widget, color):
         return [_to_hex(widget, c) for c in color]
     return _to_hex(widget, color)
 
-def get_color(widget, widget_name, field_name):
-    match ctk.get_appearance_mode():
-        case "Light":
-            return _normalize_color(widget, ThemeManager.theme[widget_name][field_name])[0]
-        case "Dark":
-            return _normalize_color(widget, ThemeManager.theme[widget_name][field_name])[1]
+def get_color(widget, widget_name, field_name) -> Tuple[str, str] | str:
+    l = _normalize_color(widget, ThemeManager.theme[widget_name][field_name])
+    if isinstance(l, str):
+        return l
+    return (l[0], l[1])
 
 def disable_button(button : CTkButton): 
     if button._state != "disabled":

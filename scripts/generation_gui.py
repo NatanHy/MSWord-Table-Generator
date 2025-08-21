@@ -80,11 +80,12 @@ def gen_tables(insert=False):
     # Generate tables asynchronously
     try:
         if insert:
-            doc_path_for_insertion = insert_doc_file_handler.first_path
+            assert insert_doc_file_handler.has_files, "No files for insertion found"
+            doc_path_for_insertion = insert_doc_file_handler.first_path() #type: ignore
             doc_for_insertion = Document(doc_path_for_insertion)
             async_table_generator.generate_and_insert_tables(excel_file_handler.selected_file_paths, doc_for_insertion)
         else:
-            async_table_generator.template_file_path = empty_doc_file_handler.first_path
+            async_table_generator.template_file_path = empty_doc_file_handler.first_path()
             async_table_generator.generate_tables(excel_file_handler.selected_file_paths)
     except:
         pass
@@ -192,7 +193,7 @@ if __name__ == "__main__":
         )
 
     excel_file_handler.after_add=lambda: frame_manager.go_to_frame(1)
-    
+
     #==================================================
     # Defining UI elements and inner containers
     #==================================================
@@ -226,6 +227,8 @@ if __name__ == "__main__":
         command=lambda: open_folder("backups"),
         width=30,
     )
+    # save object instance to stop python's garbage collector form deleting it
+    _hover1 = OnHover(backup_button, "Open backups folder")
 
     # Button for changing Light/Dark theme
     sun = Image.open("resources/sun.png")
@@ -244,9 +247,8 @@ if __name__ == "__main__":
         command=switch_theme,
         width=30,
     )    
+    _hover2 = OnHover(theme_change_button, "Change theme")
 
-    # save object instance to stop python's garbage collector form deleting it
-    _hover = OnHover(backup_button, "Open backups folder")
 
     # File list container
     file_list_frame = ctk.CTkFrame(files_chosen_frame, width=round(RES_X * 0.8))
@@ -284,15 +286,17 @@ if __name__ == "__main__":
         on_select=empty_doc_file_handler.select_files
         )
     empty_dnd_box.select_button.configure(
-        text="Select File (optional)"
+        text="Select Template (optional)"
     )
+    _hover3 = OnHover(empty_dnd_box.select_button, "Select optional template document for styling. The document will not be modified")
+
     insert_dnd_box = DnDBox(
         insert_doc_frame.content, 
         on_drop=insert_doc_file_handler.drag_and_drop_files, 
         on_select=insert_doc_file_handler.select_files
         )
     insert_dnd_box.select_button.configure(
-        text="Select File"
+        text="Select Document"
     )
 
     empty_doc_file_handler.add_ui(empty_doc_frame.content, height=110)

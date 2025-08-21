@@ -35,7 +35,7 @@ sync_done = False
 def save_files():
     try:
         file_syncer.save_files()
-        folder_path = os.path.dirname(word_file_handler.first_path)
+        folder_path = os.path.dirname(word_file_handler.first_path()) #type: ignore
         show_save_confirmation(folder_path)
     except Exception as e:
         show_save_fail(e)
@@ -64,11 +64,11 @@ def sync():
     original_protocol = root.protocol("WM_DELETE_WINDOW")
 
     try:
-        doc_path = word_file_handler.first_path
+        doc_path = word_file_handler.first_path()
         xls_paths = list(excel_file_handler.selected_file_paths)
         frame_manager.go_to_frame(1)
         frame_manager.frames[frame_manager.current_frame].update_idletasks()
-        gen = file_syncer.sync_files(doc_path, xls_paths, progress_var=progress_var)
+        gen = file_syncer.sync_files(doc_path, xls_paths, progress_var=progress_var) #type: ignore
 
         # Set WM_DELETE_WINDOW protocol to break the while loop
         def stop_loop():
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         )
     select_excel_button = ctk.CTkButton(
         selection_frame, 
-        text="Select Excel file", 
+        text="Select Excel files", 
         command=excel_file_handler.select_files,
         height=50,
         font=("Segoe UI", 16, "bold")
