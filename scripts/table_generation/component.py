@@ -6,6 +6,7 @@ import pandas as pd
 
 from utils.formatting import format_raw_value
 from utils.dataframes import get_non_null_values_from_row, excel_to_indx, make_first_row_headers
+from utils.files import ExcelFileManager
 
 VAR_COL = "C" # Column where variables are e.g. VarGe01
 DESC_ROW = 18 # Row of Yes/No, Description, How, Rationale
@@ -22,19 +23,19 @@ def var_to_offset(var : str) -> int:
 
 @dataclass
 class Component:
-    xls : pd.ExcelFile
+    file_manager : ExcelFileManager
     id : str
     name : str
     system_component : str
 
     def get_info(self) -> 'ComponentInfo':
-        return ComponentInfo(self.id, self.xls)
+        return ComponentInfo(self.id, self.file_manager)
 
 class ComponentInfo:
-    def __init__(self, id : str, xls : pd.ExcelFile):
+    def __init__(self, id : str, file_manager : ExcelFileManager):
         from utils.xls_parsing import get_filtered_by_id
-        self.df = xls.parse(f"{id}_INF", header=None) # Drop headers since excel file is not structured like a dataframe
-        self.variables = get_filtered_by_id(xls, "Var").iloc[:, 0].values.tolist()
+        self.df = file_manager.xls.parse(f"{id}_INF", header=None) # Drop headers since excel file is not structured like a dataframe
+        self.variables = get_filtered_by_id(file_manager, "Var").iloc[:, 0].values.tolist()
     
     @property
     def influences(self) -> List[str]:

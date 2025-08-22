@@ -7,15 +7,14 @@ import docx.document
 from rapidfuzz import process, fuzz
 
 from .heading_tree import HeadingTree, build_heading_tree
-from .file_manager import WordFileManager, ExcelFileManager
 from table_generation import Component
 from utils.xls_parsing import (
     get_description,
     set_description, 
-    set_component_name, 
     get_xls_from_component_id,
     get_component_by_id
     )
+from utils.files import WordFileManager, ExcelFileManager
 from utils.xml import insert_paragraph_after, parse_mappings
 
 def get_descriptions(doc : docx.document.Document) -> Iterator[HeadingTree]:
@@ -82,8 +81,8 @@ class WordExcelSyncer:
             xls_manager = self._parse_excel(xls_path)
 
             try:
-                component = get_component_by_id(xls_manager.xls, component_id)
-                yield from self._set_descriptions(description, component, xls_manager.wb)
+                component = get_component_by_id(xls_manager, component_id)
+                yield from self._set_descriptions(description, component, xls_manager)
             except ValueError:
                 print(f"Could not parse component for {component_id}")
 
@@ -96,11 +95,11 @@ class WordExcelSyncer:
         for xls_manager in self._xls_managers.values():
             xls_manager.backup_and_save()
 
-    def _set_descriptions(self, description : _WordDescription, component : Component, wb : openpyxl.Workbook) -> Generator[Mismatch, str, None]:
+    def _set_descriptions(self, description : _WordDescription, component : Component, excel_file_manager : ExcelFileManager) -> Generator[Mismatch, str, None]:
         paragraph = description.node.get_or_insert_paragraph(0)
 
         word_description = paragraph.text
-        excel_description = get_description(wb, component.id)
+        excel_description = get_description(excel_file_manager, component.id)
 
         similarity = fuzz.ratio(word_description, excel_description)
 
@@ -115,7 +114,7 @@ class WordExcelSyncer:
 
             match choice:
                 case "w":
-                    set_description(wb, component.id, word_description)
+                    set_description(excel_file_manager, component.id, word_description)
                     return
                 case "e":
                     paragraph.text = excel_description
@@ -133,45 +132,3 @@ class WordExcelSyncer:
         xls_manager = ExcelFileManager(xls_path)
         self._xls_managers[xls_path] = xls_manager
         return xls_manager
-
-    def _find_best_component_match(self, description : _WordDescription, components : List[Component]) -> Generator[Mismatch, str, Component | None]:
-        target = description.component_name.strip()
-
-        choices = [comp.name for comp in components] # Extract names of components
-        best_match = process.extractOne(
-            target,
-            choices,
-            scorer=fuzz.ratio
-        )
-
-        _, similarity, index = best_match
-        best_matching_component = components[index]
-
-        if int(similarity) == 100:
-            return best_matching_component
-        
-        handled_mismatch = yield from self._handle_component_mismatch(description, best_matching_component, similarity)
-        return handled_mismatch
-
-    def _handle_component_mismatch(self, description : _WordDescription, component : Component, similarity) -> Generator[Mismatch, str, Component | None]:
-        while True:
-            choice = yield Mismatch("FEP Name", similarity, description.process_type, description.component_name, component.name)
-            match choice:
-                case "w":
-                    self._set_headings(description, component, description.component_name)
-                    return component
-                case "e":
-                    self._set_headings(description, component, component.name)
-                    return component
-                case "s" | "":
-                    return None
-                case _:
-                    # Unknown command
-                    pass
-
-    def _set_headings(self, description : _WordDescription, component : Component, text : str):
-        description.set_component_name_heading(text)
-
-        component_file_path = fspath(component.xls)
-        file_manager = self._parse_excel(component_file_path)
-        set_component_name(file_manager.wb, component, text)

@@ -24,6 +24,7 @@ from utils.xls_parsing import (
     parse_excel_cached, 
     get_component_by_id
     )
+from utils.files import ExcelFileManager
 
 class _ComponentElement:
     
@@ -112,10 +113,10 @@ class AsyncTableGenerator:
     def _process_file(self, xls_path: str):
         print(f"Parsing {xls_path}...")
 
-        xls = pd.ExcelFile(xls_path)
+        file_manager = ExcelFileManager(xls_path)
 
-        components = parse_components(xls)
-        variable_names = parse_variables(xls)
+        components = parse_components(file_manager)
+        variable_names = parse_variables(file_manager)
 
         print("Done.")
         print("Generating Word tables...")
@@ -185,14 +186,14 @@ class AsyncTableGenerator:
             
             # Parse variable descriptions for new xls paths
             if xls_path in parsed_paths:
-                xls_file = parsed_paths[xls_path]
+                xls_file_manager = parsed_paths[xls_path]
             else:
-                xls_file = parse_excel_cached(xls_path)
-                parsed_paths[xls_path] = xls_file
-                for k, v in parse_variables(xls_file).items():
+                xls_file_manager = parse_excel_cached(xls_path)
+                parsed_paths[xls_path] = xls_file_manager
+                for k, v in parse_variables(xls_file_manager).items():
                     variables[k] = v # Add variable names
 
-            component = get_component_by_id(xls_file, component_id)
+            component = get_component_by_id(xls_file_manager, component_id)
 
             para = heading.get_or_insert_paragraph(-1)
             component_element = _ComponentElement(component, para) #type: ignore
