@@ -1,7 +1,18 @@
 # MSWord-Table-Generator
 
 ## File Syncing
-Using the syncing GUI
+Using the syncing GUI the descriptions in word and excel files can be synced. This is a two-step process:
+
+1. Select files
+2. Resolve mismatches
+
+### Step 1 - Select files
+Select one word document and one or more excel files, then click the "sync" button. 
+
+### Step 2 - Resolve Mismatches
+For each mismatching description in the word and excel files, a box will appear in the GUI showing the mismatch. From here there are three options to choose from: Use the description from word, use the description from excel, or skip. Opting to use the word or excel description will overwrite all occurrences with the corresponding description, whereas choosing "skip" will leave both descriptions unchanged. 
+
+Once the progress bar reaches 100% all mismatches have been resolved and the files may be saved. This will modify the existing files, but backups will be created beforehand. **Note**: If no boxes appear there may be a mistake in the mapping tables, or some other error may have occurred. Press the button above the progress bar to view an error log.  
 
 ## Table generation
 Generating tables can be done using the provided Table Generation GUI. The generation in divided into three steps:
