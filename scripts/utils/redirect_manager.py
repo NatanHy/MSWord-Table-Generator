@@ -1,6 +1,17 @@
 from contextlib import contextmanager
 import sys
 
+class StringRedirector:
+    def __init__(self):
+        self.text = ""
+
+    def write(self, s):
+        self.text += s
+
+    def flush(self):
+        # Needed because some code may call sys.stdout.flush()
+        pass
+
 @contextmanager
 def redirect_stdout_to(redirector):
     """

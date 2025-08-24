@@ -103,27 +103,30 @@ def poll_table_queue():
     root.after(100, poll_table_queue)  # Poll every 100ms
 
 def save_tables():
-    # If we are inserting into a word file, just save the file and return
-    if doc_for_insertion is not None:
-        create_backup(doc_path_for_insertion)
-        doc_for_insertion.save(doc_path_for_insertion)
-        show_save_confirmation(os.path.dirname(doc_path_for_insertion))
-        return
+    try:
+        # If we are inserting into a word file, just save the file and return
+        if doc_for_insertion is not None:
+            create_backup(doc_path_for_insertion)
+            doc_for_insertion.save(doc_path_for_insertion)
+            show_save_confirmation(os.path.dirname(doc_path_for_insertion))
+            return
 
-    # Otherwise prompt user for a folder and save there
-    output_dir = ctk.filedialog.askdirectory(title="Select output directory")
-    if not output_dir:
-        return  # User cancelled
-    
-    # Make subfolders for each selected file only if multiple are selected
-    make_subfolders = len(excel_file_handler.selected_file_paths) > 1
+        # Otherwise prompt user for a folder and save there
+        output_dir = ctk.filedialog.askdirectory(title="Select output directory")
+        if not output_dir:
+            return  # User cancelled
+        
+        # Make subfolders for each selected file only if multiple are selected
+        make_subfolders = len(excel_file_handler.selected_file_paths) > 1
 
-    with redirect_stdout_to(output_redirector):
-        for table in recieved_tables:
-            table.save(output_dir, make_subfolder=make_subfolders)
+        with redirect_stdout_to(output_redirector):
+            for table in recieved_tables:
+                table.save(output_dir, make_subfolder=make_subfolders)
 
-    # Show confirmation popup with "Open folder" option
-    show_save_confirmation(output_dir)
+        # Show confirmation popup with "Open folder" option
+        show_save_confirmation(output_dir)
+    except Exception as e:
+        show_save_fail(e)
 
 def show_save_confirmation(folder_path):
     confirm_win = PopUpWindow(root, "Save Complete", "✅ Tables saved successfully!")
@@ -133,6 +136,11 @@ def show_save_confirmation(folder_path):
         confirm_win.destroy()
 
     confirm_win.set_left("Open Folder", open_and_destroy)
+    confirm_win.set_right("Ok", confirm_win.destroy)
+
+def show_save_fail(err):
+    confirm_win = PopUpWindow(root, "Save Failed", f"Could not save files:\n{err}")
+    confirm_win.set_left("Cancel", confirm_win.destroy)
     confirm_win.set_right("Ok", confirm_win.destroy)
 
 if __name__ == "__main__":

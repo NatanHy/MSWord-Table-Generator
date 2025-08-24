@@ -31,7 +31,7 @@ def add_table_heading(doc : docx.document.Document, component : 'Component', ins
     else:
         caption = insert_paragraph_after(insert_after, text="", style=styl)
 
-    table_text = f"Direct dependencies between the process “{component.name}” and the defined {component.system_component} variables and a short note on the handling in the [TODO]."
+    table_text = f"Direct dependencies between the process “{component.name}” and the defined {component.system_component} variables."
     insert_multilevel_table_caption(caption, table_text)
     return caption
 

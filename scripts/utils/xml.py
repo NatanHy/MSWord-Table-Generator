@@ -155,7 +155,8 @@ def parse_mappings(doc) -> Dict[str, Dict[str, str]]:
         try:
             mapping = _parse_mapping_table(tbl)
             mappings[heading.text.strip()] = mapping
-        except ValueError:
+        except ValueError as e:
+            # Ignore error, most likely attempting to parse a non-process type header
             pass
 
     return mappings
@@ -171,8 +172,8 @@ def _parse_mapping_table(tbl : Table) -> Dict[str, str]:
         (1, 3): "FEP Name"
     }
     for indx, s in mapping_header.items():
-        if tbl.rows[indx[0]].cells[indx[1]].text.strip() != s:
-            raise ValueError("Table is not a mapping table")
+        if (v := tbl.rows[indx[0]].cells[indx[1]].text.strip()) != s:
+            raise ValueError(f"Table is not a mapping table: row {indx[0]} column {indx[1]} should be '{s}', found {v}")
     
     # Map column 1 to column 2
     mapping = {c1.text.strip() : c2.text.strip() for c1, c2 in zip(tbl.column_cells(1), tbl.column_cells(2))}

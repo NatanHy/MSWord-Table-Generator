@@ -69,13 +69,26 @@ class WordExcelSyncer:
             description = _WordDescription(desc)
 
             try:
-                component_id = mappings[description.process_type][description.component_name]
+                components =  mappings[description.process_type]
             except KeyError:
+                print(f"WARNING: Missing mapping for '{description.process_type}', malformed mapping table?")
+                if progress_var:
+                    progress_var.set((i+1) / num_descriptions)
+                continue # Trying to find a component id for non-process-type, skip iteration
+
+            try:
+                component_id = components[description.component_name]
+            except KeyError:
+                print(f"WARNING: Missing mapping for '{description.process_type}' - '{description.component_name}'.")
+                if progress_var:
+                    progress_var.set((i+1) / num_descriptions)
                 continue # Trying to find a component id for non-process-type, skip iteration
 
             xls_path = get_xls_from_component_id(component_id, xls_file_paths)
             if xls_path is None:
                 print(f"Could not find excel file for {component_id}")
+                if progress_var:
+                    progress_var.set((i+1) / num_descriptions)
                 continue # Skip iteration if no matching xls file is found
             
             xls_manager = self._parse_excel(xls_path)

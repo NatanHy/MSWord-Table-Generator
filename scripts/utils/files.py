@@ -29,6 +29,9 @@ class ExcelFileManager(FileManager):
     def __init__(self, file_path : str):
         super().__init__(file_path)
         self.xls = pd.ExcelFile(file_path)
+        # Workbook only used for reading, using data_only=True, the workbook will overwrite all formulas
+        # Using data_only=False will overwrite all cached values on save, making pandas read NaN
+        # For this reason workbook cannot be used for writing to the excel file
         self.wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
         self.updates = {}
 
@@ -41,7 +44,8 @@ class ExcelFileManager(FileManager):
     def _patch_excel_values(self):
         """
         Patch cached values in an .xlsx file, using inlineStr for text.
-        updates: {("Sheet1","A1"): value, ...} value can be str or number
+        Modify only the <v><v/> tags in the xml file to ensure all formulas and cached values
+        persist on save.
         """
         tmp_dir = Path("tmp_extract")
         if tmp_dir.exists():
@@ -86,8 +90,7 @@ class ExcelFileManager(FileManager):
                     return f'{opening_tag}<is><t>{new_val}</t></is>{m.group(2)}'
 
                 text, n = pattern.subn(str_repl, text)
-            else:
-                # Numeric → usual <v> replacement
+            else: # Numeric values
                 pat_replace = re.compile(
                     rf'(?s)(<c[^>]*\br="{re.escape(cell)}"[^>]*>.*?<v>)(.*?)(</v>)'
                 )

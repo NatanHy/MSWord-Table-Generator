@@ -11,6 +11,7 @@ files_to_build = [
 common_options = [
     "--onefile",        # Create a single .exe
     "--noconsole",      # No console window (for GUI apps)
+    "--clean"
 ]
 
 # Paths

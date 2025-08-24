@@ -11,7 +11,8 @@ from gui import (
     FrameManager, 
     MismatchContainer, 
     PopUpWindow,
-    ProgressBar
+    ProgressBar,
+    TextboxRedirector
     )
 from word_sync import WordExcelSyncer
 from utils.gui_utils import (
@@ -22,6 +23,7 @@ from utils.gui_utils import (
     switch_theme
     )
 from utils.files import resource_path
+from utils.redirect_manager import redirect_stdout_to, StringRedirector
 
 ASPECT_RATIO = 9 / 16
 RES_X = 720
@@ -56,6 +58,9 @@ def show_save_confirmation(folder_path):
     confirm_win.set_left("Open Folder", open_and_destroy)
     confirm_win.set_right("Ok", confirm_win.destroy)
 
+def show_err_log():
+    confirm_win = PopUpWindow(root, "Error log", text=error_log.text, width=600, text_box=True)
+
 def set_sync_done_false():
     global sync_done
     sync_done = False
@@ -64,37 +69,37 @@ def sync():
     global sync_done
     original_protocol = root.protocol("WM_DELETE_WINDOW")
 
-    try:
-        doc_path = word_file_handler.first_path()
-        xls_paths = list(excel_file_handler.selected_file_paths)
-        frame_manager.go_to_frame(1)
-        frame_manager.frames[frame_manager.current_frame].update_idletasks()
-        gen = file_syncer.sync_files(doc_path, xls_paths, progress_var=progress_var) #type: ignore
+    with redirect_stdout_to(error_log):
+        try:
+            doc_path = word_file_handler.first_path()
+            xls_paths = list(excel_file_handler.selected_file_paths)
+            frame_manager.go_to_frame(1)
+            frame_manager.frames[frame_manager.current_frame].update_idletasks()
+            gen = file_syncer.sync_files(doc_path, xls_paths, progress_var=progress_var) #type: ignore
 
-        # Set WM_DELETE_WINDOW protocol to break the while loop
-        def stop_loop():
-            mismatch_container._last.result_var.set("EXIT") #type: ignore
-        root.protocol("WM_DELETE_WINDOW", stop_loop)
+            # Set WM_DELETE_WINDOW protocol to break the while loop
+            def stop_loop():
+                mismatch_container._last.result_var.set("EXIT") #type: ignore
+            root.protocol("WM_DELETE_WINDOW", stop_loop)
 
-        while True:
             mismatch = next(gen)  # Start the generator
+            while True:
+                    mismatch_container.update_idletasks()
+                    mismatch_container.add_mismatch(mismatch, fill="both", expand=True, padx=5, pady=5)
 
-            mismatch_container.update_idletasks()
-            mismatch_container.add_mismatch(mismatch, fill="both", expand=True, padx=5, pady=5)
+                    if int(mismatch.similarity) != 100:            
+                        decision = mismatch_container.get_choice()
+                    else:
+                        decision = "s"
 
-            if int(mismatch.similarity) != 100:            
-                decision = mismatch_container.get_choice()
-            else:
-                decision = "s"
-
-            if decision == "EXIT":
-                break
-            mismatch = gen.send(decision)
-        root.destroy() # Only reached when WM_DELETE_WINODW is called
-    except StopIteration:
-        # restore WM_DELETE_WINDOW protocol
-        root.protocol("WM_DELETE_WINDOW", lambda: root.tk.call(original_protocol))
-        sync_done = True
+                    if decision == "EXIT":
+                        break
+                    mismatch = gen.send(decision)
+            root.destroy() # Only reached when WM_DELETE_WINODW is called
+        except StopIteration:
+            # restore WM_DELETE_WINDOW protocol
+            root.protocol("WM_DELETE_WINDOW", lambda: root.tk.call(original_protocol))
+            sync_done = True
 
 
 if __name__ == "__main__":
@@ -220,6 +225,18 @@ if __name__ == "__main__":
     ) 
     disable_button_while(save_button, lambda: not sync_done)
 
+    error_log = StringRedirector()
+
+    img = ctk.CTkImage(Image.open(resource_path("resources/err_log.png")))
+    show_log_button = ctk.CTkButton(
+        syncing_frame,
+        text="",
+        image=img,
+        width=30,
+        command=show_err_log
+    ) 
+    _hover2 = OnHover(show_log_button, "Show error log")
+
     #==================================================
     # Placing UI elements and inner containers
     #==================================================
@@ -241,12 +258,15 @@ if __name__ == "__main__":
 
     syncing_frame.grid_columnconfigure(0, weight=1)
     syncing_frame.grid_columnconfigure(1, weight=0)
+    syncing_frame.grid_columnconfigure(2, weight=0)
     syncing_frame.grid_rowconfigure(0, weight=1)
     syncing_frame.grid_rowconfigure(1, weight=0)
+    syncing_frame.grid_rowconfigure(2, weight=0)
 
     mismatch_container.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
-    progress_bar.grid(row=1, column=0, sticky="sew", padx=5, pady=5)
-    save_button.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
+    show_log_button.grid(row=1, column=0, sticky="w", padx=5, pady=(5, 0))
+    progress_bar.grid(row=2, column=0, sticky="sew", padx=5, pady=5)
+    save_button.grid(row=1, rowspan=2, column=1, sticky="nsew", padx=5, pady=5)
 
     root.mainloop()
 

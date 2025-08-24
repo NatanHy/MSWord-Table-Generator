@@ -176,8 +176,17 @@ class AsyncTableGenerator:
             # component name used to find correct component in excel file
             component_name = heading.get_parent_heading_relative(1).text.strip() #type: ignore
 
-            # Use parsed mapping to find the component id
-            component_id = mappings[process_type][component_name]
+            try:
+                components =  mappings[process_type]
+            except KeyError:
+                print(f"WARNING: Missing mapping for '{process_type}', malformed mapping table?")
+                continue # Trying to find a component id for non-process-type, skip iteration
+
+            try:
+                component_id = components[component_name]
+            except KeyError:
+                print(f"WARNING: Missing mapping for '{process_type}' - '{component_name}'.")
+                continue # Trying to find a component id for non-process-type, skip iteration
 
             # Ignore component if it is not defined in the excel files
             if (xls_path := get_xls_from_component_id(component_id, xls_paths)) is None:

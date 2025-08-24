@@ -2,15 +2,20 @@ import customtkinter as ctk
 from customtkinter import LEFT, RIGHT
 
 class PopUpWindow(ctk.CTkToplevel):
-    def __init__(self, master, title, text, width=300, height=120):
+    def __init__(self, master, title, text, width=300, height=120, text_box=False):
         super().__init__(master)
-        self.label = ctk.CTkLabel(self, text=text, wraplength=width)
+        if text_box:
+            self.text_box = ctk.CTkTextbox(self, width=width, height=height)
+            self.text_box.insert("end", text=text)
+            self.text_box.pack(pady=(20, 5))
+        else:
+            self.label = ctk.CTkLabel(self, text=text, wraplength=width)
+            self.label.pack(pady=(20, 5))
 
         self.resizable(True, False)
         self.pack_propagate(True)
         self.title(title)
 
-        self.label.pack(pady=(20, 5))
         # Delay geometry call to allow rendering
         self.after(10, lambda: self._center(master, width, height))
 
