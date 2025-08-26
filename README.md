@@ -1,7 +1,7 @@
 # MSWord-Table-Generator
 
 ## File Syncing
-The descriptions in word and excel files can be synced using the syncing GUI. This is a two-step process:
+The descriptions and mapping tables in word and excel files can be synced using the syncing GUI. This is a two-step process:
 
 1. Select files
 2. Resolve mismatches
@@ -10,7 +10,7 @@ The descriptions in word and excel files can be synced using the syncing GUI. Th
 Select one word document and one or more excel files, then click the "sync" button. 
 
 ### Step 2 - Resolve Mismatches
-For each mismatching description in the word and excel files, a box will appear in the GUI showing the mismatch. From here there are three options to choose from: Use the description from word, use the description from excel, or skip. Opting to use the word or excel description will overwrite all occurrences with the corresponding description. Choosing "skip" will leave both descriptions unchanged. 
+For each mismatch a box will appear in the GUI. The mismatch can either be a "Description mismatch" or a "Mapping mismatch". A description mismatch means that the description in the word file does not match the excel description, whereas a mapping mismatch means that the header in the word file does not match the value present in the mapping table. For descriptions there are three options to choose from: Use the description from word, use the description from excel, or skip. Opting to use the word or excel description will overwrite all occurrences with the corresponding description. Choosing "skip" will leave both descriptions unchanged. For mapping mismatches the process is much the same, but the choice is between updating the mapping table to use the word heading, or updating the word heading to match the mapping table.
 
 Once the progress bar reaches 100% all mismatches have been resolved and the files may be saved. This will modify the existing files, but backups will be created beforehand. **Note**: If no boxes appear there may be a mistake in the mapping tables, or some other error may have occurred. Press the button above the progress bar to view an error log.  
 
