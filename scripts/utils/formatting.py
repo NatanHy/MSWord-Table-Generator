@@ -9,8 +9,7 @@ from docx.text.paragraph import Paragraph
 from config.document_config import TABLE_HEADING_STYLE, LEFT_MARGIN, RIGHT_MARGIN
 from utils.xml import insert_multilevel_table_caption, clear_document, insert_paragraph_after
 if TYPE_CHECKING:
-    from table_generation.fixed_table import FixedTable
-    from table_generation import Component
+    from table_generation import FixedTable, Component
 
 def copy_document_styles(path) -> docx.document.Document:
     """

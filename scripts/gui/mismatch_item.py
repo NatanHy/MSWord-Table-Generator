@@ -67,16 +67,27 @@ class _DifferenceFrame(ctk.CTkFrame):
 
         match file_type:
             case "word":
-                icon_path = resource_path("resources/word_icon.png")                
-                icon_text = " In Word"
-                button_text = "Use Word"
-                hover_text = "Overwrite all occurences with Word version"
+                icon_path = resource_path("resources/word_icon.png")
+                if mismatch.mismatch_type == "mapping":
+                    icon_text = " In Document"
+                    button_text = "Use document version"
+                    hover_text = "Overwrite mapping value with document header"
+                else:                
+                    icon_text = " In Word"
+                    button_text = "Use Word"
+                    hover_text = "Overwrite all occurences with Word header"
                 text_diff_index = 0
             case "excel":
                 icon_path = resource_path("resources/excel_icon.png")
                 icon_text = " In Excel"
                 button_text = "Use Excel"
                 hover_text = "Overwrite all occurences with Excel version"
+                text_diff_index = 1
+            case "table":
+                icon_path = resource_path("resources/word_icon.png")
+                icon_text = " In mapping table"
+                button_text = "Use table value"
+                hover_text = "Overwrite document header with table value"
                 text_diff_index = 1
             case _:
                 raise ValueError(f"File type must be either 'word' or 'excel, found {file_type}")
@@ -180,13 +191,23 @@ class _MismatchItem(ctk.CTkFrame):
                 on_press=self._button_cmd("w"),
                 corner_radius=2
                 )
-            self.e_frame = _DifferenceFrame(
-                self, 
-                mismatch=mismatch,
-                file_type="excel",
-                on_press=self._button_cmd("e"),
-                corner_radius=2
-                )
+            match mismatch.mismatch_type:
+                case "description":
+                    self.e_frame = _DifferenceFrame(
+                        self, 
+                        mismatch=mismatch,
+                        file_type="excel",
+                        on_press=self._button_cmd("e"),
+                        corner_radius=2
+                        )
+                case "mapping":
+                    self.e_frame = _DifferenceFrame(
+                        self, 
+                        mismatch=mismatch,
+                        file_type="table",
+                        on_press=self._button_cmd("t"),
+                        corner_radius=2
+                        )  
             self.skip_button = ctk.CTkButton(self, text="Skip", command=self._button_cmd("s"))
 
             self.w_frame.grid(row=2, column=0, padx=5, pady=(5, 0), sticky="nsew")

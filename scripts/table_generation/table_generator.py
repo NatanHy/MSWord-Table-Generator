@@ -3,8 +3,7 @@ from typing import Tuple, Dict, List
 from docx.table import _Cell
 import docx.document
 
-from table_generation.component import Component
-from table_generation.fixed_table import FixedTable
+from table_generation import Component, FixedTable
 from table_generation.parser import Parser
 from utils.formatting import format_raw_value, style, format_table, add_table_heading
 

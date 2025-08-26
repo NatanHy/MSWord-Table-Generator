@@ -1,4 +1,4 @@
-from typing import cast, Union, Dict
+from typing import cast, Union, Dict, Iterable, Tuple
 
 import docx.document
 from docx.oxml import OxmlElement
@@ -151,7 +151,7 @@ def insert_multilevel_table_caption(paragraph, table_text):
 def parse_mappings(doc) -> Dict[str, Dict[str, str]]:
     mappings = {}
 
-    for heading, tbl in _get_first_table_per_heading(doc):
+    for heading, tbl in get_mapping_tables(doc):
         try:
             mapping = _parse_mapping_table(tbl)
             mappings[heading.text.strip()] = mapping
@@ -161,7 +161,12 @@ def parse_mappings(doc) -> Dict[str, Dict[str, str]]:
 
     return mappings
 
-def _parse_mapping_table(tbl : Table) -> Dict[str, str]:
+def get_mapping_tables(doc) -> Iterable[Tuple[Paragraph, Table]]:
+    for heading, tbl in _get_first_table_per_heading(doc):
+        if _is_mapping_table(tbl):
+            yield (heading, tbl)
+
+def _is_mapping_table(tbl) -> bool:
     # Check that the header matches the template
     mapping_header = {
         (0, 0): "This report",
@@ -173,8 +178,11 @@ def _parse_mapping_table(tbl : Table) -> Dict[str, str]:
     }
     for indx, s in mapping_header.items():
         if (v := tbl.rows[indx[0]].cells[indx[1]].text.strip()) != s:
-            raise ValueError(f"Table is not a mapping table: row {indx[0]} column {indx[1]} should be '{s}', found {v}")
-    
+            return False
+
+    return True    
+
+def _parse_mapping_table(tbl : Table) -> Dict[str, str]:
     # Map column 1 to column 2
     mapping = {c1.text.strip() : c2.text.strip() for c1, c2 in zip(tbl.column_cells(1), tbl.column_cells(2))}
 

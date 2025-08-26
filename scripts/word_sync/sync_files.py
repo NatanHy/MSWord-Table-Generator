@@ -1,9 +1,8 @@
-from os import fspath
-from typing import List, Iterator, Generator
+from typing import List, Iterator, Generator, Dict
 from dataclasses import dataclass
 
-import openpyxl
 import docx.document
+from docx.table import Table
 from rapidfuzz import process, fuzz
 
 from .heading_tree import HeadingTree, build_heading_tree
@@ -15,11 +14,21 @@ from utils.xls_parsing import (
     get_component_by_id
     )
 from utils.files import WordFileManager, ExcelFileManager
-from utils.xml import insert_paragraph_after, parse_mappings
+from utils.xml import insert_paragraph_after, parse_mappings, get_mapping_tables
 
 def get_descriptions(doc : docx.document.Document) -> Iterator[HeadingTree]:
     root = build_heading_tree(doc)
     yield from root.filter(lambda node : node.heading is not None and node.heading.text == "Description")
+
+def _replace_table_value(tbl : Table, s : str, replacement : str, col : int):
+    cells = tbl._cells
+    num_cols = len(tbl.columns)
+    for row in range(len(tbl.rows)):
+        indx = row * num_cols + col
+        cell = cells[indx]
+        if cell.text == s:
+            cell.text = replacement
+            return
 
 @dataclass
 class Mismatch:
@@ -62,6 +71,8 @@ class WordExcelSyncer:
         """
         self._word_manager = WordFileManager(doc_path)
         mappings = parse_mappings(self._word_manager.doc)
+        mapping_tables = {h.text.strip() : tbl for h, tbl in get_mapping_tables(self._word_manager.doc)}
+        print(mapping_tables)
         descriptions = list(get_descriptions(self._word_manager.doc))
         num_descriptions = len(descriptions)
 
@@ -79,10 +90,12 @@ class WordExcelSyncer:
             try:
                 component_id = components[description.component_name]
             except KeyError:
-                print(f"WARNING: Missing mapping for '{description.process_type}' - '{description.component_name}'.")
-                if progress_var:
-                    progress_var.set((i+1) / num_descriptions)
-                continue # Trying to find a component id for non-process-type, skip iteration
+                component_id = yield from self._resolve_mapping_mismatch(mappings, mapping_tables, description)
+
+                if not component_id:
+                    if progress_var:
+                        progress_var.set((i+1) / num_descriptions)
+                    continue # Trying to find a component id for non-process-type, skip iteration
 
             xls_path = get_xls_from_component_id(component_id, xls_file_paths)
             if xls_path is None:
@@ -107,6 +120,40 @@ class WordExcelSyncer:
             self._word_manager.backup_and_save()
         for xls_manager in self._xls_managers.values():
             xls_manager.backup_and_save()
+
+    def _resolve_mapping_mismatch(self, mapping : Dict[str, Dict[str, str]], mapping_tables : Dict[str, Table], description : _WordDescription) -> Generator[Mismatch, str, str | None]:
+        # Find key which most closely matches the description
+        target = description.component_name
+        choices = mapping[description.process_type].keys()
+
+        best_match, similarity, _ = process.extractOne(
+            target,
+            choices,
+            scorer=fuzz.ratio
+        )
+
+        while True:
+            choice = yield Mismatch(
+                "mapping", 
+                similarity, 
+                description.process_type.strip(), 
+                target, 
+                best_match
+                )
+            
+            match choice:
+                case "w":
+                    tbl = mapping_tables[description.process_type]
+                    _replace_table_value(tbl, best_match, target, 1)
+                    return mapping[description.process_type][best_match]
+                case "t":
+                    description.set_component_name_heading(best_match)
+                    return mapping[description.process_type][best_match]
+                case "s" | "": 
+                    return
+                case _:
+                    # Unkown command
+                    pass
 
     def _set_descriptions(self, description : _WordDescription, component : Component, excel_file_manager : ExcelFileManager) -> Generator[Mismatch, str, None]:
         paragraph = description.node.get_or_insert_paragraph(0)
