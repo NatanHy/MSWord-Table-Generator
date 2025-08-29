@@ -4,6 +4,8 @@ from gui.file_item import FileItem
 import customtkinter as ctk
 from tkinterdnd2 import DND_ALL
 
+import re
+
 class _UI:
     def __init__(self, master, **kwargs):
         self.initialized = False
@@ -62,10 +64,9 @@ class SelectedFilesHandler:
 
     def drag_and_drop_files(self, event):
         raw_data = event.data.strip()
-        file_paths = raw_data.split("}")  # supports multiple files
-        cleaned_paths = [path.strip("{} ") for path in file_paths]
+        matches = re.findall(r"\{([^}]+)\}", raw_data)
 
-        self.add_files(cleaned_paths)
+        self.add_files(matches)
 
     def select_files(self):
         file_paths = ctk.filedialog.askopenfilenames()

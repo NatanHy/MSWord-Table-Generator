@@ -2,14 +2,13 @@ import queue
 import sys
 import threading
 import time
-from typing import Iterable, Dict, Tuple, List
+from typing import Iterable, Dict, Tuple, List, Callable
 
 from docx import Document
 import docx.document
 from docx.text.paragraph import Paragraph
 import pandas as pd
 
-from config import DSL_FILE_PATH
 from table_generation.table_generator import generate_table_in_document
 from table_generation.table import TableCollection
 from table_generation.component import Component
@@ -24,7 +23,9 @@ from utils.xls_parsing import (
     parse_excel_cached, 
     get_component_by_id
     )
-from utils.files import ExcelFileManager
+from utils.files import ExcelFileManager, resource_path
+
+DSL_FILE_PATH = resource_path("config/table.dsl")
 
 class _ComponentElement:
     
@@ -40,7 +41,7 @@ class AsyncTableGenerator:
     """
     Class for generating tables asynchronously. Generated tables are placed in a queue provided during initiation. 
     """
-    def __init__(self, queue : queue.Queue, stdout_redirect=None, template_file_path=None):
+    def __init__(self, queue : queue.Queue, stdout_redirect=None, template_file_path=None, on_fail : Callable[[Exception], None]=None):
         """
         ### Parameters
         queue : `Queue` where generated tables will be placed.\n
@@ -50,6 +51,7 @@ class AsyncTableGenerator:
         self.thread = None
         self.queue = queue
         self.template_file_path = template_file_path
+        self.on_fail = on_fail
 
         if stdout_redirect is None:
             self.stdout_redirect = sys.stdout
@@ -70,26 +72,30 @@ class AsyncTableGenerator:
         Start a thread for generating tables. 
         """
         def task():
-            with open(DSL_FILE_PATH, "r") as f:
-                self._code = f.read()
+            try:
+                with open(DSL_FILE_PATH, "r") as f:
+                    self._code = f.read()
 
-            # Using context manager to redirect stdout
-            with redirect_stdout_to(self.stdout_redirect):
-                print("Parsing word document...")
-                component_elements, variable_descriptions = self._parse_document(doc, xls_paths)
-                print("Done.")
-                print("Generating Word tables...")
-                for ce in component_elements:
-                    if self.stop_event.is_set():
-                        print("Operation terminated.")
-                        return
-                    # If there is already a table, remove it and it's heading
-                    if remove_table_after_heading(doc, ce.paragraph.text):
-                        self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
-                        delete_paragraph(ce.paragraph)
-                    else:
-                        self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
-                print("Done.")
+                # Using context manager to redirect stdout
+                with redirect_stdout_to(self.stdout_redirect):
+                    print("Parsing word document...")
+                    component_elements, variable_descriptions = self._parse_document(doc, xls_paths)
+                    print("Done.")
+                    print("Generating Word tables...")
+                    for ce in component_elements:
+                        if self.stop_event.is_set():
+                            print("Operation terminated.")
+                            return
+                        # If there is already a table, remove it and it's heading
+                        if remove_table_after_heading(doc, ce.paragraph.text):
+                            self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
+                            delete_paragraph(ce.paragraph)
+                        else:
+                            self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
+                    print("Done.")
+            except Exception as e:
+                if self.on_fail:
+                    self.on_fail(e)
 
         self.thread = threading.Thread(target=task)
         self.thread.start()
@@ -99,13 +105,17 @@ class AsyncTableGenerator:
         Start a thread for generating tables. 
         """
         def task():
-            with open(DSL_FILE_PATH, "r") as f:
-                self._code = f.read()
+            try:
+                with open(DSL_FILE_PATH, "r") as f:
+                    self._code = f.read()
 
-            # Using context manager to redirect stdout
-            with redirect_stdout_to(self.stdout_redirect):
-                for xls_path in xls_paths:
-                    self._process_file(xls_path)
+                # Using context manager to redirect stdout
+                with redirect_stdout_to(self.stdout_redirect):
+                    for xls_path in xls_paths:
+                        self._process_file(xls_path)
+            except Exception as e:
+                if self.on_fail:
+                    self.on_fail(e)
 
         self.thread = threading.Thread(target=task)
         self.thread.start()
