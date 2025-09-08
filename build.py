@@ -10,23 +10,28 @@ files_to_build = [
 # Build settings (shared)
 common_options = [
     "--onefile",        # Create a single .exe
-    "--noconsole",      # No console window (for GUI apps)
+    "--noconsole",      # No console window 
     "--clean"
 ]
 
 # Paths
-RESOURCES_DIR = "resources"
+RESOURCE_DIRS = [
+    "resources", 
+    "config"     
+]
 BACKUPS_DIR = "backups"
 
 def build_exe(script):
     print(f"Building {script}...")
 
-    # Add resources folder to exe
     add_data = []
-    if os.path.isdir(RESOURCES_DIR):
-        add_data = [f"--add-data={RESOURCES_DIR};{RESOURCES_DIR}"]
-    else:
-        raise RuntimeError(f"Could not find {RESOURCES_DIR}")
+
+    for rdir in RESOURCE_DIRS:
+        if os.path.isdir(rdir):
+            add_data.append(f"--add-data={rdir};{rdir}")
+        else:
+            raise RuntimeError(f"Could not find {rdir}")
+
 
     PyInstaller.__main__.run(common_options + add_data + [script])
 
