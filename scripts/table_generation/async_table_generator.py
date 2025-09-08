@@ -85,10 +85,11 @@ class AsyncTableGenerator:
                         if self.stop_event.is_set():
                             print("Operation terminated.")
                             return
-                        # If there is already a table, remove it and it's heading
+                        # If there is already a table, replace it
+                        # Generate new heading only if there isn't one already
                         if remove_table_after_heading(doc, ce.paragraph.text):
-                            self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
-                            delete_paragraph(ce.paragraph)
+                            generate_heading = (ce.paragraph.style is not None) and (ce.paragraph.style.name == "Body Text")
+                            self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph, generate_heading=generate_heading)
                         else:
                             self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
                     print("Done.")
