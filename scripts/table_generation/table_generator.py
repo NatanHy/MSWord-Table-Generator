@@ -51,7 +51,8 @@ def generate_table_in_document(
         variable_names : Dict[str, str], 
         code : str, 
         parser=Parser(),
-        insert_after=None
+        insert_after=None,
+        generate_heading=True
         ):
     """
     Generates a word document with a table specifying information for the given component. 
@@ -63,11 +64,12 @@ def generate_table_in_document(
     parser.parse(code)
     table_state = parser.execute(info, variable_names)
 
-    heading_para = add_table_heading(word_document, component, insert_after=insert_after)
+    if generate_heading:
+        heading_para = add_table_heading(word_document, component, insert_after=insert_after)
 
-    if insert_after is not None:
-        # If we are relying on `insert_after` for positioning, update it with the added heading
-        insert_after = heading_para
+        if insert_after is not None:
+            # If we are relying on `insert_after` for positioning, update it with the added heading
+            insert_after = heading_para
 
     # Using fixed table class since the table shape is known after execution
     table = FixedTable(word_document, table_state.rows, table_state.cols, insert_after=insert_after)

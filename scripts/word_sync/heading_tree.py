@@ -78,18 +78,33 @@ class HeadingTree:
         for child in self.children:
             yield from child.filter(key)
 
-    def get_or_insert_paragraph(self, indx, style="Body Text"):
+    def get_last_nonempty_paragraph(self) -> Paragraph | None:
+        if len(self.paragraphs) == 0:
+            return
+        i = -1
+        try:
+            while len(self.paragraphs[i].text) == 0:
+                i -= 1
+        except IndexError:
+            return
+        return self.paragraphs[i]
+    
+    def insert_paragraph(self, style="Body Text"):
+        # Otherwise add a paragraph and return it
+        if self.heading:
+            para = insert_paragraph_after(self.heading, style=style)
+            self.paragraphs.append(para)
+            return para
+        else:
+            raise RuntimeError("Cannot get paragraph of node because heading is None")
+        
+    def get_or_insert_paragraph(self, indx, style="Body Text") -> Paragraph:
         if len(self.paragraphs) > 0:
             # If there exist a paragraph, return it
             return self.paragraphs[indx]
         else:
-            # Otherwise add a paragraph and return it
-            if self.heading:
-                para = insert_paragraph_after(self.heading, style=style)
-                self.paragraphs.append(para)
-                return para
-            else:
-                raise RuntimeError("Cannot get paragraph of node because heading is None")
+            return self.insert_paragraph(style=style)
+
 
 def _get_heading_level(style_name: str) -> int | None:
     """Extract heading level from style name, e.g., 'Heading 2' -> 2."""

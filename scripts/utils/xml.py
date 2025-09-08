@@ -237,6 +237,7 @@ def _remove_immediate_table_after_paragraph(paragraph):
     p_element = paragraph._element
     next_element = p_element.getnext()
 
+
     if next_element is not None and next_element.tag.endswith('tbl'):
         parent = next_element.getparent()
         parent.remove(next_element)

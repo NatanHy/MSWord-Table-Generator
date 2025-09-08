@@ -7,7 +7,6 @@ from typing import Iterable, Dict, Tuple, List
 from docx import Document
 import docx.document
 from docx.text.paragraph import Paragraph
-import pandas as pd
 
 from config import DSL_FILE_PATH
 from table_generation.table_generator import generate_table_in_document
@@ -83,10 +82,12 @@ class AsyncTableGenerator:
                     if self.stop_event.is_set():
                         print("Operation terminated.")
                         return
-                    # If there is already a table, remove it and it's heading
+                    
+                    # If there is already a table, replace it
+                    # Generate heading only if there is no heading already
                     if remove_table_after_heading(doc, ce.paragraph.text):
-                        self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
-                        delete_paragraph(ce.paragraph)
+                        generate_heading = (ce.paragraph.style is not None) and (ce.paragraph.style.name == "Body Text")
+                        self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph, generate_heading=generate_heading)
                     else:
                         self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph)
                 print("Done.")
@@ -145,11 +146,11 @@ class AsyncTableGenerator:
         self.queue.put(TableCollection(word_document, xls_path))
         print(f"Operation completed. Generated {successful} table(s). Success {successful} | Fail {unsuccessful}")
 
-    def _generate_table(self, doc, component, variable_names, insert_after=None) -> bool:
+    def _generate_table(self, doc, component, variable_names, insert_after=None, generate_heading=True) -> bool:
         # Try generating table in the document
         try:
             start = time.time()
-            generate_table_in_document(doc, component, variable_names, self._code, insert_after=insert_after)
+            generate_table_in_document(doc, component, variable_names, self._code, insert_after=insert_after, generate_heading=generate_heading)
             end = time.time()
             print(f"    Generated table for {component.id} : Success | {end - start:.2f}s")
             return True
@@ -203,8 +204,9 @@ class AsyncTableGenerator:
                     variables[k] = v # Add variable names
 
             component = get_component_by_id(xls_file_manager, component_id)
-
-            para = heading.get_or_insert_paragraph(-1)
+            para = heading.get_last_nonempty_paragraph()
+            if para is None:
+                para = heading.heading # No paragraphs under heading, insert tables directly after heading
             component_element = _ComponentElement(component, para) #type: ignore
             filtered_components.append(component_element)
         return filtered_components, variables
