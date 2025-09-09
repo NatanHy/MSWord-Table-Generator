@@ -17,16 +17,6 @@ def delete_paragraph(paragraph):
     parent = p.getparent()
     parent.remove(p)
 
-def remove_table_after_heading(doc, heading_text):
-    """
-    Finds a heading by text, then removes the immediate table after it
-    (only if it's the very next block).
-    """
-    for paragraph in doc.paragraphs:
-        if paragraph.text.strip() == heading_text:
-            return _remove_immediate_table_after_paragraph(paragraph)
-    return False
-
 def insert_table_after(rows : int, cols : int, insert_after) -> Table:
     # Create the table (in memory, detached)
     tbl = OxmlElement('w:tbl')
@@ -229,7 +219,7 @@ def _iter_block_items(parent):
         elif child.tag.endswith('}tbl'):  # Table
             yield Table(child, parent)
 
-def _remove_immediate_table_after_paragraph(paragraph):
+def remove_table_after_paragraph(paragraph):
     """
     Removes the table immediately following the given paragraph,
     if and only if the very next block item is a table.
@@ -237,9 +227,9 @@ def _remove_immediate_table_after_paragraph(paragraph):
     p_element = paragraph._element
     next_element = p_element.getnext()
 
-
     if next_element is not None and next_element.tag.endswith('tbl'):
         parent = next_element.getparent()
         parent.remove(next_element)
         return True  # Removed
+    
     return False  # Nothing removed

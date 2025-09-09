@@ -152,7 +152,7 @@ def show_gen_fail(err : Exception):
     def copy_traceback():
         root.clipboard_clear()
         tb_str = traceback.format_exception(type(err), err, err.__traceback__)
-        root.clipboard_append(tb_str)
+        root.clipboard_append(tb_str) #type: ignore
         root.update()  # Needed to update clipboard
         confirm_win.label.configure(text="Traceback copied to clipboard")
 

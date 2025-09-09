@@ -14,7 +14,7 @@ from table_generation.component import Component
 from word_sync.heading_tree import build_heading_tree
 from utils.redirect_manager import redirect_stdout_to
 from utils.formatting import copy_document_styles
-from utils.xml import remove_table_after_heading, delete_paragraph, parse_mappings
+from utils.xml import remove_table_after_paragraph, parse_mappings
 from utils.xls_parsing import (
     parse_components, 
     parse_variables,
@@ -40,7 +40,7 @@ class AsyncTableGenerator:
     """
     Class for generating tables asynchronously. Generated tables are placed in a queue provided during initiation. 
     """
-    def __init__(self, queue : queue.Queue, stdout_redirect=None, template_file_path=None, on_fail : Callable[[Exception], None]=None):
+    def __init__(self, queue : queue.Queue, stdout_redirect=None, template_file_path=None, on_fail : None | Callable[[Exception], None]=None):
         """
         ### Parameters
         queue : `Queue` where generated tables will be placed.\n
@@ -87,7 +87,7 @@ class AsyncTableGenerator:
                             return
                         # If there is already a table, replace it
                         # Generate new heading only if there isn't one already
-                        if remove_table_after_heading(doc, ce.paragraph.text):
+                        if remove_table_after_paragraph(ce.paragraph):
                             generate_heading = (ce.paragraph.style is not None) and (ce.paragraph.style.name == "Body Text")
                             self._generate_table(doc, ce.component, variable_descriptions, insert_after=ce.paragraph, generate_heading=generate_heading)
                         else:
