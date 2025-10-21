@@ -8,15 +8,15 @@
 
 !style("name='Times New Roman', size=Pt(10)")
 foreach(!variables) as $var {
-    foreach(!time_period) as $time {
+    foreach(!domain) as $domain {
         !description($var)
         foreach(!influence) as $influence {
             if (!equals([$var][$influence]["Influence present?"]["Yes/No"], "No")) {
                 "No" | "N/A" | "N/A"
             } else {
                 [$var][$influence]["Influence present?"]["Yes/No"] + "\n" + [$var][$influence]["Influence present?"]["Description"] | 
-                $time | 
-                [$var][$influence][$time]["Rationale"]
+                $domain | 
+                [$var][$influence][$domain]["Rationale"]
             }
         }
         !newline

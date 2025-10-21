@@ -11,7 +11,7 @@ from utils.files import ExcelFileManager
 VAR_COL = "C" # Column where variables are e.g. VarGe01
 DESC_ROW = 18 # Row of Yes/No, Description, How, Rationale
 VAR_ROW = DESC_ROW + 1  # Row of top-most variable (VarGe01)
-VIP_ROW = 17  # Row of time periods for "Variable influence on process"
+VIP_ROW = 17  # Row of conditional domains for "Variable influence on process"
 
 # Top left cell of the input area (where the data is located)
 VAR_INF_COL = "F"
@@ -42,12 +42,12 @@ class ComponentInfo:
         return self.indicies(1)
     
     @property
-    def time_periods(self) -> List[str]:
+    def domains(self) -> List[str]:
         return self.indicies(2)[1:]
 
-    def num_time_periods(self) -> int:
-        # -1 to not include "Influence present?" header as a time period
-        return len(self.time_periods)
+    def num_domains(self) -> int:
+        # -1 to not include "Influence present?" header as a domain
+        return len(self.domains)
 
     def num_variables(self) -> int:
         return len(self.variables)
@@ -78,11 +78,11 @@ class ComponentInfo:
         # Row offsets from "Variable influence on process" to "Process influence on variable"
         piv_offset = self.num_variables() + 4
 
-        num_time_periods = self.num_time_periods() 
+        num_domains = self.num_domains() 
 
         row_indices = [i - 2, i - 1, i + n, i + n + piv_offset]
-        col_range = set(range(j, j + 3 * num_time_periods + 2))
-        col_exclude = set([j + 2 + 3*i for i in range(num_time_periods)])
+        col_range = set(range(j, j + 3 * num_domains + 2))
+        col_exclude = set([j + 2 + 3*i for i in range(num_domains)])
 
         # Extract rows from the DataFrame
         df = self.df.iloc[row_indices, list(col_range - col_exclude)]

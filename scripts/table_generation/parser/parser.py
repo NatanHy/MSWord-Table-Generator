@@ -39,7 +39,7 @@ index_access: ("[" expression "]")+
 // -------------------
 quoted_string: ESCAPED_STRING
 var: "$" CNAME
-builtin_function: TIME_PERIOD 
+builtin_function: DOMAIN 
     | INFLUENCE 
     | VARIABLES 
     | NEW_LINE 
@@ -50,7 +50,7 @@ builtin_function: TIME_PERIOD
     | SPAN "(" term "," INT ")" 
     | EQUALS "(" term "," term ")"
 
-TIME_PERIOD : "!time_period"
+DOMAIN : "!domain"
 INFLUENCE : "!influence"
 VARIABLES : "!variables"
 NEW_LINE : "!newline"
@@ -148,8 +148,8 @@ class TableExecutor(Transformer):
     @v_args(inline=True)
     def builtin_function(self, token, *args):
         match token.value:
-            case "!time_period":
-                return self.info.time_periods
+            case "!domain":
+                return self.info.domains
             case "!influence":
                 return self.info.influences
             case "!variables":
