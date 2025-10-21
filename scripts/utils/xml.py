@@ -167,7 +167,7 @@ def _is_mapping_table(tbl) -> bool:
         (1, 3): "FEP Name"
     }
     for indx, s in mapping_header.items():
-        if (v := tbl.rows[indx[0]].cells[indx[1]].text.strip()) != s:
+        if (tbl.rows[indx[0]].cells[indx[1]].text.strip().lower()) != s.lower():
             return False
 
     return True    

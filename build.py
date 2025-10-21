@@ -3,8 +3,7 @@ import PyInstaller.__main__
 
 # List of GUI Python scripts to compile
 files_to_build = [
-    "scripts/generation_gui.py",
-    "scripts/sync_gui.py"
+    "scripts/gui.py",
 ]
 
 # Build settings (shared)
@@ -55,7 +54,7 @@ def main():
             print(f"Error: {file} not found!")
 
     ensure_backups_folder()
-    print("\n✅ Build complete! EXEs are in the 'dist' folder.")
+    print("Build complete! EXEs are in the 'dist' folder.")
 
 
 if __name__ == "__main__":
