@@ -34,6 +34,9 @@ All table will be generated under a heading _"Dependencies between processes and
 ![Example of correct mapping table](resources/mapping_example.png)
 Example of correct mapping table layout
 
+![Example of correct heading layout](resources/heading_example.png)
+Example of correct heading layout (the red text is not a part of the document)
+
 ### Step 3 - Save files
 
 When generating tables in an empty document, choose an output directory where the generated documents should be saved. When inserting into an existing document clicking the save button will save the changes in the document that was selected for insertion. When inserting into a document, the table numbering will not be automatically resolved. To update the numbering in the document select all the text with `ctr+a` and then press `F9`.
