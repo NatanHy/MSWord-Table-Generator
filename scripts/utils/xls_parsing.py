@@ -23,7 +23,10 @@ def set_description(file_manager : ExcelFileManager, component_id : str, descrip
 def get_filtered_by_id(file_manager : ExcelFileManager, prefix="") -> pd.DataFrame:
     # Get main sheet
     xls = file_manager.xls
-    df = xls.parse("PSAR SFK FEP list", header=None)
+    try:
+        df = xls.parse("PSAR SFK FEP list", header=None)
+    except:
+        df = xls.parse("SFK FEP list", header=None)
 
     # Skip to row where SKB FEP ID is located
     col_b = df.columns[1]
@@ -96,7 +99,10 @@ def parse_variables(file_manager : ExcelFileManager) -> Dict[str, str]:
 @cache
 def _xls_matches_prefix(prefix: str, xls_file_path : str) -> bool:
     wb = openpyxl.load_workbook(xls_file_path, data_only=True, read_only=True)
-    ws = wb["PSAR SFK FEP list"]
+    try:
+        ws = wb["PSAR SFK FEP list"]
+    except:
+        ws = wb["SFK FEP list"]
     return ws["B8"].value == prefix
 
 def get_xls_from_component_id(component_id : str, xls_files : Iterable[str]) -> str | None: 

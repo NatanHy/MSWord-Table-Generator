@@ -12,7 +12,7 @@ foreach(!variables) as $var {
         !description($var)
         foreach(!influence) as $influence {
             if (!equals([$var][$influence]["Influence present?"]["Yes/No"], "No")) {
-                "No" | "N/A" | "N/A"
+                "No" | "" | ""
             } else {
                 [$var][$influence]["Influence present?"]["Yes/No"] + "\n" + [$var][$influence]["Influence present?"]["Description"] | 
                 $domain | 
