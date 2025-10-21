@@ -12,8 +12,11 @@ start: statement+
 // -------------------
 statement: foreach_stmt
          | output_stmt
+         | if_stmt
 
-foreach_stmt: "foreach" "(" expression ")" "as" "$" CNAME "{" statement+ "}"
+foreach_stmt: "foreach" (" ")* "(" expression ")" "as" "$" CNAME "{" statement+ "}"
+
+if_stmt: "if" (" ")* "(" expression ")" "{" statement+ "}" ("else" "{" statement+ "}")?
 
 output_stmt: expression ("|" expression)*
 
@@ -36,7 +39,16 @@ index_access: ("[" expression "]")+
 // -------------------
 quoted_string: ESCAPED_STRING
 var: "$" CNAME
-builtin_function: TIME_PERIOD | INFLUENCE | VARIABLES | NEW_LINE | FORCE_CUTOFF | DESCRIPTION "(" term ")" | STYLE "(" term ")" | FORMAT "(" term ")" | SPAN "(" term "," INT ")"
+builtin_function: TIME_PERIOD 
+    | INFLUENCE 
+    | VARIABLES 
+    | NEW_LINE 
+    | FORCE_CUTOFF 
+    | DESCRIPTION "(" term ")" 
+    | STYLE "(" term ")" 
+    | FORMAT "(" term ")" 
+    | SPAN "(" term "," INT ")" 
+    | EQUALS "(" term "," term ")"
 
 TIME_PERIOD : "!time_period"
 INFLUENCE : "!influence"
@@ -47,6 +59,7 @@ FORCE_CUTOFF : "!force_cutoff"
 SPAN : "!span"
 STYLE : "!style"
 FORMAT : "!format"
+EQUALS : "!equals"
 
 %import common.CNAME
 %import common.ESCAPED_STRING
@@ -152,21 +165,27 @@ class TableExecutor(Transformer):
                 arg = self._resolve(args[0])
                 self.table_state.format = arg #type: ignore
             case "!style":
-                def exec():
+                def exec(): #type: ignore
                     arg = self._resolve(args[0])
                     self.style = arg
                 return exec
             case "!newline":
-                def exec():
+                def exec(): #type: ignore
                     self.table_state.next_row()
                     self.table_state.reset_col()
                 return exec
             case "!span":
-                def exec():
+                def exec(): #type: ignore
                     text = self._resolve(args[0])
                     length = args[1]
                     self.table_state.set_style(self.style)
                     self.table_state.add_span(text, length)
+                return exec
+            case "!equals":
+                def exec(): #type: ignore
+                    a = self._resolve(args[0])
+                    b = self._resolve(args[1])
+                    return a == b
                 return exec
 
     def expression(self, items):
@@ -194,6 +213,22 @@ class TableExecutor(Transformer):
                     self._resolve(stmt)
         return exec
     
+    def if_stmt(self, items):
+        if len(items) == 2:
+            cond, then_body = items
+            else_body = None
+        elif len(items) == 3:
+            cond, then_body, else_body = items
+        else:
+            raise ValueError("Unexpected structure for if_stmt")
+        
+        def exec():
+            if self._resolve(cond):
+                self._resolve(then_body)
+            elif else_body is not None:
+                self._resolve(else_body)
+        return exec
+
     def output_stmt(self, items):
         def exec():
             for item in items:

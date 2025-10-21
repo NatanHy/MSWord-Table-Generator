@@ -11,9 +11,13 @@ foreach(!variables) as $var {
     foreach(!time_period) as $time {
         !description($var)
         foreach(!influence) as $influence {
-            [$var][$influence]["Influence present?"]["Yes/No"] + "\n" + [$var][$influence]["Influence present?"]["Description"] | 
-            $time | 
-            [$var][$influence][$time]["Rationale"]
+            if (!equals([$var][$influence]["Influence present?"]["Yes/No"], "No")) {
+                "No" | "N/A" | "N/A"
+            } else {
+                [$var][$influence]["Influence present?"]["Yes/No"] + "\n" + [$var][$influence]["Influence present?"]["Description"] | 
+                $time | 
+                [$var][$influence][$time]["Rationale"]
+            }
         }
         !newline
     }

@@ -1,13 +1,8 @@
 import customtkinter as ctk
 from customtkinter import TOP, BOTTOM
 from PIL import Image
-from tkinterdnd2 import TkinterDnD, DND_ALL
+from tkinterdnd2 import DND_ALL
 from utils.files import resource_path
-
-class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.TkdndVersion = TkinterDnD._require(self)
 
 class DnDBox:
     dnd_icon = ctk.CTkImage(

@@ -11,13 +11,11 @@ class FrameManager:
             current_frame=0, 
             frame_kwargs={}, 
             on_back_callbacks={},
-            place_back_button=True,
             back_button_pos=(10, 10)
             ):
         self.frames = frames
         self.current_frame = current_frame
         self.frame_kwargs = frame_kwargs
-        self.place_back_button = place_back_button
         self.callbacks = on_back_callbacks
         self.back_button_pos = back_button_pos
 
@@ -30,31 +28,27 @@ class FrameManager:
             width=30,
             command=self.back
         )
+
+        self.back_button.place(x=self.back_button_pos[0], y=self.back_button_pos[1])
     
     def go_to_frame(self, frame):
-        from utils.gui_utils import hide_ui_element, display_ui_element #type: ignore
+        from utils.gui_utils import hide_ui_element, display_ui_element
 
+        if frame < 0 or frame >= len(self.frames):
+            return
+        
         if frame in self.frame_kwargs:
             kwargs = self.frame_kwargs[frame]
         else:
             kwargs = {}
 
-        if frame < 0 or frame >= len(self.frames):
-            return
-
         hide_ui_element(self.frames[self.current_frame])
         self.current_frame = frame
         display_ui_element(self.frames[self.current_frame], **kwargs)
 
-        if self.current_frame != 0 and self.place_back_button:
-            self.back_button.place(x=self.back_button_pos[0], y=self.back_button_pos[1])
+        self.back_button.place(x=self.back_button_pos[0], y=self.back_button_pos[1])
 
     def back(self):
-        from utils.gui_utils import hide_ui_element, display_ui_element
-
-        if self.current_frame == 1:
-            hide_ui_element(self.back_button)
-            
         if self.current_frame in self.callbacks:
             self.callbacks[self.current_frame]()
 
